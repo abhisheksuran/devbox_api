@@ -14,3 +14,11 @@ tokio = { version = "1.47.1", features= ["full"] }
 tower-http = { version = "0.6.6", features = ["trace", "cors"] }
 tracing = "0.1.41"
 tracing-subscriber = "0.3.20"
+bollard = "0.19.2"
+futures-util = "0.3.31"
+tar = "0.4.44"
+flate2 = "1.1.2"
+http-body-util = "0.1"
+
+[workspace.lints.clippy]
+all = "deny"
