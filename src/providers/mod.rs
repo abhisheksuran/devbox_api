@@ -1,3 +1,8 @@
-mod docker;
+pub mod docker;
 
-pub use docker::handle_exec_stream;
+#[derive(serde::Serialize, serde::Deserialize, Debug)]
+pub enum ProviderEnum {
+    DOCKER,
+    AZURE,
+    AWS,
+}

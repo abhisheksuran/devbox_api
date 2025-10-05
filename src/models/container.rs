@@ -1,3 +1,4 @@
+use bollard::models::ContainerCreateBody;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -27,29 +28,29 @@ impl Container {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct DevContainer {
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DevBox {
     pub name: String,
     pub image: Option<String>,
     pub build: Option<Build>,
-    pub mounts: Vec<String>,
-    pub remote_user: String,
-    pub features: HashMap<String, Feature>,
-    pub forward_ports: Option<Vec<u16>>,
+    pub post_start_script: Option<Vec<String>>,
+    pub start_on_create: Option<bool>,
+    pub features: Option<HashMap<String, Feature>>,
+    pub config: Option<ContainerCreateBody>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Build {
     pub dockerfile: String,
     pub context: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Feature {
-    pub version: String,
+    pub version: Option<String>,
 }
 
-impl DevContainer {
+impl DevBox {
     pub fn is_valid(&self) -> bool {
         self.image.as_ref().map(|s| !s.is_empty()).unwrap_or(false) || self.build.is_some()
     }

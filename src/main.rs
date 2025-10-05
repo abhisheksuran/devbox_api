@@ -4,7 +4,7 @@ use axum::{
 };
 use bollard::Docker;
 use http::{HeaderName, HeaderValue, Method};
-use routes::{all_containers, get_container, new_container, websocket_exec_handler};
+use routes::{all_containers, get_container, new_container, new_devbox, websocket_exec_handler};
 use std::sync::Arc;
 mod db;
 mod handlers;
@@ -26,6 +26,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/container/get", get(get_container))
         .route("/container/list", get(all_containers))
         .route("/container/create", post(new_container))
+        .route("/ws/devbox/create", get(new_devbox))
         .route("/ws/docker/{id}", get(websocket_exec_handler))
         .layer(tower_http::trace::TraceLayer::new_for_http())
         .layer(cors)

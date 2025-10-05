@@ -2,15 +2,16 @@ use bollard::Docker;
 use futures_util::TryStreamExt;
 use futures_util::stream::StreamExt;
 use http_body_util::Full;
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::io::Write;
+use std::sync::Arc;
+use tracing::{error, info};
 
-use crate::models::DevContainer;
+use crate::models::DevBox;
 
 pub async fn create_image(
-    docker: Docker,
-    devcontainer: &DevContainer,
+    docker: Arc<Docker>,
+    devcontainer: &DevBox,
 ) -> Result<(), Box<dyn std::error::Error>> {
     if let Some(image_name) = &devcontainer.image {
         if !image_name.is_empty() {
@@ -19,21 +20,32 @@ pub async fn create_image(
             let options = bollard::query_parameters::CreateImageOptionsBuilder::default()
                 .from_image(&image_name)
                 .tag("latest")
+                .repo(&devcontainer.name)
                 .build();
             docker
                 .create_image(Some(options), None, None)
                 .try_collect::<Vec<_>>()
                 .await?;
+            println!("Tagging image..");
+            let tag_options = bollard::query_parameters::TagImageOptions {
+                repo: Some(devcontainer.name.clone()),
+                tag: Some("latest".to_string()),
+            };
+
+            docker
+                .tag_image(&format!("{}:latest", image_name), Some(tag_options))
+                .await?;
         } else {
-            return Err(Box::new(std::io::Error::other("Image is null")));
+            // return Err(Box::new(std::io::Error::other("Image is null")));
+            build_from_local(docker, devcontainer).await?;
         }
     }
     Ok(())
 }
 
 pub async fn build_from_remote(
-    docker: Docker,
-    devcontainer: &DevContainer,
+    docker: Arc<Docker>,
+    devcontainer: &DevBox,
 ) -> Result<(), Box<dyn std::error::Error>> {
     println!("Building using docker file");
     let mut build_image_args = HashMap::new();
@@ -74,8 +86,8 @@ pub async fn build_from_remote(
 }
 
 pub async fn build_from_local(
-    docker: Docker,
-    devcontainer: &DevContainer,
+    docker: Arc<Docker>,
+    devcontainer: &DevBox,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let context = devcontainer
         .build
@@ -123,20 +135,20 @@ pub async fn build_from_local(
         match msg {
             Ok(info) => {
                 if let Some(stream) = info.stream {
-                    print!("Stream {}", stream);
+                    info!("Stream {}", stream);
                 }
                 if let Some(status) = info.status {
-                    println!("Status: {}", status);
+                    info!("Status: {}", status);
                 }
                 if let Some(aux) = info.aux {
-                    println!("Image ID: {:?}", aux.id);
+                    info!("Image ID: {:?}", aux.id);
                 }
                 if let Some(error) = info.error {
-                    eprintln!("Build error: {}", error);
+                    error!("Build error: {}", error);
                 }
             }
             Err(e) => {
-                eprintln!("Stream error: {:?}", e);
+                error!("Stream error: {:?}", e);
             }
         }
     }
