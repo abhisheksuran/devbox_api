@@ -1,10 +1,7 @@
 use crate::db::DefaultDB;
 use crate::models::{Container, ContainerConfig, DevBox};
 use crate::providers::ProviderEnum;
-use crate::providers::docker::image::create_image;
-use crate::providers::docker::{
-    create as docker_create, exec as docker_exec, remove as docker_remove, start as docker_start,
-};
+use crate::providers::get_provider_strategy;
 use bollard::Docker;
 use futures::future::ok;
 use rusqlite::params;
@@ -59,67 +56,24 @@ pub async fn fetch_container(name: String) -> Result<String, Box<dyn std::error:
     Ok(json)
 }
 
-// pub async fn create_devbox(
-//     provider: ProviderEnum,
-//     docker: Arc<Docker>,
-//     devcontainer: DevBox,
-// ) -> Result<String, Box<dyn std::error::Error>> {
-//     match provider {
-//         ProviderEnum::DOCKER => {
-//             info!("Creating image");
-//             create_image(docker.clone(), &devcontainer).await?;
-//             let id = docker_create(docker.clone(), &devcontainer).await?;
-//             let flag = devcontainer.start_on_create.unwrap_or_default();
-//             if flag {
-//                 docker_start(docker.clone(), id.clone()).await?;
-//                 info!("Container started.");
-//             }
-//             if let Some(command) = devcontainer.post_start_script {
-//                 docker_exec(docker, id.clone(), Some(command)).await?
-//             }
-//             Ok(id)
-//         }
-//         ProviderEnum::AZURE => Ok("dummy_id".to_string()),
-//         ProviderEnum::AWS => Ok("dummy_id".to_string()),
-//     }
-// }
-use axum::extract::ws::Utf8Bytes;
-use axum::extract::ws::{Message, WebSocket};
-use futures::{SinkExt, StreamExt};
 pub async fn create_devbox(
-    stream: WebSocket,
     provider: ProviderEnum,
     docker: Arc<Docker>,
-    // devcontainer: DevBox,
-) {
-    info!("inside create devbox");
-    let devcontainer = DevBox {
-        name: "new_ws".to_string(),
-        image: Some("nginx".to_string()),
-        build: None,
-        post_start_script: None,
-        start_on_create: None,
-        features: None,
-        config: None,
-    };
-    let (mut sender, mut receiver) = stream.split();
-    match provider {
-        ProviderEnum::DOCKER => {
-            info!("Creating image");
-            let utf8 = Utf8Bytes::from("Creating image".to_string());
-            let _ = sender.send(Message::Text(utf8)).await.is_err();
-            let _ = create_image(docker.clone(), &devcontainer).await;
-            let id = docker_create(docker.clone(), &devcontainer).await.unwrap();
-            let flag = devcontainer.start_on_create.unwrap_or_default();
-            if flag {
-                let _ = docker_start(docker.clone(), id.clone()).await;
-                info!("Container started.");
-            }
-            if let Some(command) = devcontainer.post_start_script {
-                let _ = docker_exec(docker, id.clone(), Some(command)).await;
-            }
-        }
-        ProviderEnum::AZURE => (),
-        ProviderEnum::AWS => (),
-    }
+    devcontainer: DevBox,
+) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    let strategy = get_provider_strategy(provider);
+    let result = strategy.create_devbox(docker, devcontainer).await?;
+    Ok(result)
 }
+
+// pub async fn remove_devbox(
+//     id: String,
+//     docker: Arc<Docker>,
+// ) -> Result<(), Box<dyn std::error::Error>> {
+//     // Here you would implement the logic to remove the devbox/container
+//     // For example, using the Docker API to stop and remove the container
+//     // and then removing its record from the database.
+
+//     // Placeholder implementation:
+//     info!("Removing devbox with ID: {}", id);
+// }

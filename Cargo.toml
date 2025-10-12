@@ -20,11 +20,11 @@ tar = "0.4.44"
 flate2 = "1.1.2"
 http-body-util = "0.1"
 futures = "0.3.31"
+async-trait = "0.1.89"
+uuid = {version="1.18.1", features = ["v4"]}
 
 [workspace.lints.clippy]
 all = "deny"
-
-[profile]
 
 [profile.wasm-dev]
 inherits = "dev"
