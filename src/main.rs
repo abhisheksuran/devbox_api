@@ -9,6 +9,7 @@ use std::sync::Arc;
 mod db;
 mod handlers;
 mod models;
+mod openapi;
 mod providers;
 mod routes;
 mod utils;
@@ -28,6 +29,44 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/container/create", post(new_container))
         .route("/devbox/create", post(new_devbox))
         .route("/ws/docker/{id}", get(websocket_exec_handler))
+        // OpenAPI JSON
+        .route(
+            "/api-docs/openapi.json",
+            get(|| async {
+                axum::Json(
+                    serde_json::from_str::<serde_json::Value>(&openapi::openapi_json()).unwrap(),
+                )
+            }),
+        )
+        // Swagger UI (serve a simple Swagger UI page using the CDN)
+        .route(
+            "/swagger",
+            get(|| async {
+                axum::response::Html(
+                    r#"<!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="utf-8" />
+            <title>Swagger UI</title>
+            <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist/swagger-ui.css" />
+          </head>
+          <body>
+            <div id="swagger-ui"></div>
+            <script src="https://unpkg.com/swagger-ui-dist/swagger-ui-bundle.js"></script>
+            <script>
+              window.onload = function() {
+                SwaggerUIBundle({
+                  url: '/api-docs/openapi.json',
+                  dom_id: '#swagger-ui'
+                });
+              };
+            </script>
+          </body>
+        </html>"#
+                        .to_string(),
+                )
+            }),
+        )
         .layer(tower_http::trace::TraceLayer::new_for_http())
         .layer(cors)
         .with_state(docker.clone());

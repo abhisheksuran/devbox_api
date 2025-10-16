@@ -10,7 +10,8 @@ impl DevBoxProvider for AzureProvider {
     async fn create_devbox(
         &self,
         docker: Arc<Docker>,
-        devcontainer: DevBox,
+        devcontainer: Option<DevBox>,
+        path: String,
     ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         todo!("Implement this feature later");
     }

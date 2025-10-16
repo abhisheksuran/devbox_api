@@ -9,7 +9,9 @@ use bollard::Docker;
 use docker::DockerProvider;
 use std::sync::Arc;
 
-#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(
+    serde::Serialize, serde::Deserialize, Debug, Clone, PartialEq, Eq, Hash, utoipa::ToSchema,
+)]
 #[serde(rename_all = "lowercase")]
 pub enum ProviderEnum {
     Docker,
@@ -22,7 +24,8 @@ pub trait DevBoxProvider {
     async fn create_devbox(
         &self,
         docker: Arc<Docker>,
-        devcontainer: DevBox,
+        devcontainer: Option<DevBox>,
+        path: String,
     ) -> Result<serde_json::Value, Box<dyn std::error::Error>>;
 }
 

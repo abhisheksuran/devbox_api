@@ -1,7 +1,8 @@
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
+use std::collections::HashMap;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DevcontainerFeature {
     pub id: String,
@@ -11,6 +12,7 @@ pub struct DevcontainerFeature {
     pub documentation_url: Option<String>,
     pub license_url: Option<String>,
     pub keywords: Option<Vec<String>>,
+    // functional stuff
     pub options: Option<BTreeMap<String, FeatureOption>>,
     pub container_env: Option<BTreeMap<String, String>>,
     pub privileged: Option<bool>,
@@ -19,7 +21,7 @@ pub struct DevcontainerFeature {
     pub security_opt: Option<Vec<String>>,
     pub entrypoint: Option<String>,
     pub customizations: Option<BTreeMap<String, serde_json::Value>>,
-    pub depends_on: Option<BTreeMap<String, serde_json::Value>>,
+    pub depends_on: Option<BTreeMap<String, HashMap<String, serde_json::Value>>>,
     pub installs_after: Option<Vec<String>>,
     pub legacy_ids: Option<Vec<String>>,
     pub deprecated: Option<bool>,
@@ -32,7 +34,7 @@ pub struct DevcontainerFeature {
     pub post_attach_command: Option<LifecycleCommand>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FeatureOption {
     #[serde(rename = "type")]
@@ -44,7 +46,7 @@ pub struct FeatureOption {
     pub default: Option<serde_json::Value>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum LifecycleCommand {
     Single(String),
@@ -52,7 +54,7 @@ pub enum LifecycleCommand {
     ParallelGroup(BTreeMap<String, String>),
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Mount {
     pub source: String,
@@ -60,3 +62,13 @@ pub struct Mount {
     #[serde(rename = "type")]
     pub mount_type: String,
 }
+
+#[derive(Debug, Clone)]
+pub struct FeatureNode {
+    pub feature: FeatureMap,
+    pub required: bool,
+}
+
+type FeatureMap = HashMap<String, HashMap<String, serde_json::Value>>;
+
+impl DevcontainerFeature {}

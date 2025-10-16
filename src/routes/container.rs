@@ -12,9 +12,21 @@ use bollard::Docker;
 use serde_json::json;
 use std::sync::Arc;
 use tracing::{error, info};
+use utoipa::IntoParams;
+use utoipa::ToSchema;
 use uuid::Uuid;
+use validator::{Validate, ValidationError};
+use validator_derive::Validate;
 
 // GET /container/list
+#[utoipa::path(
+    get,
+    path = "/container/list",
+    responses(
+        (status = 200, description = "List containers", body = [Container]),
+        (status = 500, description = "Internal server error")
+    )
+)]
 pub async fn all_containers() -> Result<Json<serde_json::Value>, StatusCode> {
     match list_containers().await {
         Ok(json_string) => {
@@ -29,6 +41,15 @@ pub async fn all_containers() -> Result<Json<serde_json::Value>, StatusCode> {
 }
 
 // POST /container/create
+#[utoipa::path(
+    post,
+    path = "/container/create",
+    request_body = Container,
+    responses(
+        (status = 201, description = "Created"),
+        (status = 500, description = "Internal server error")
+    )
+)]
 pub async fn new_container(Json(payload): Json<Container>) -> StatusCode {
     match create_container(payload).await {
         Ok(_) => StatusCode::CREATED,
@@ -40,6 +61,15 @@ pub async fn new_container(Json(payload): Json<Container>) -> StatusCode {
 }
 
 // GET /container/get
+#[utoipa::path(
+    get,
+    path = "/container/get",
+    params(ContainerQuery),
+    responses(
+        (status = 200, description = "Get container", body = [Container]),
+        (status = 500, description = "Internal server error")
+    )
+)]
 pub async fn get_container(
     Query(params): Query<ContainerQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
@@ -57,12 +87,26 @@ pub async fn get_container(
 }
 
 // POST /devbox/create?provider=docker|azure|aws
+#[utoipa::path(
+    post,
+    path = "/devbox/create",
+    params(ProviderQuery),
+    request_body = DevBox,
+    responses(
+        (status = 200, description = "Task accepted", body = String),
+        (status = 400, description = "Bad Request"),
+        (status = 500, description = "Internal server error")
+    )
+)]
 pub async fn new_devbox(
     Query(params): Query<ProviderQuery>,
     State(docker): State<Arc<Docker>>,
-    Json(devcontainer): Json<DevBox>,
+    devcontainer: Option<Json<DevBox>>,
 ) -> Response {
-    if !devcontainer.is_valid() {
+    // Support calls without a JSON body. If body present, validate it.
+    if let Some(Json(dc)) = &devcontainer
+        && !dc.is_valid()
+    {
         error!("DevBox creation body is not valid");
         return error_response(
             StatusCode::BAD_REQUEST,
@@ -70,12 +114,18 @@ pub async fn new_devbox(
         );
     }
 
+    if let Err(e) = params.validate() {
+        error!("Validation failed: {:?}", e);
+        return error_response(StatusCode::BAD_REQUEST, e.to_string().as_str());
+    }
     let provider = params.provider;
+    let path_param = params.path.unwrap_or(".".to_string());
     let docker = docker.clone();
-    let devcontainer = devcontainer.clone();
+    // convert Option<Json<DevBox>> -> Option<DevBox>
+    let devcontainer = devcontainer.clone().map(|j| j.0);
 
     tokio::task::spawn(async move {
-        if let Err(e) = create_devbox(provider, docker, devcontainer).await {
+        if let Err(e) = create_devbox(provider, docker, devcontainer, path_param).await {
             eprintln!("Failed to create devbox: {}", e);
         }
     });
@@ -84,12 +134,24 @@ pub async fn new_devbox(
     (Json(json!({ "task_id": id.to_string() }))).into_response()
 }
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, Validate, IntoParams, ToSchema)]
 pub struct ProviderQuery {
     provider: ProviderEnum,
+    #[validate(custom = "validate_path")]
+    path: Option<String>,
 }
 
-#[derive(serde::Deserialize)]
+fn validate_path(path: &str) -> Result<(), ValidationError> {
+    let p = std::path::Path::new(path);
+
+    if p.exists() && p.is_dir() {
+        Ok(())
+    } else {
+        Err(ValidationError::new("Not a valid directory"))
+    }
+}
+
+#[derive(serde::Deserialize, IntoParams, ToSchema)]
 pub struct ContainerQuery {
     name: String,
 }

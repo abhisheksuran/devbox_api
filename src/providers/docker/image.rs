@@ -9,39 +9,39 @@ use tracing::{error, info};
 
 use crate::models::DevBox;
 
-pub async fn create_image(
-    docker: Arc<Docker>,
-    devcontainer: &DevBox,
-) -> Result<(), Box<dyn std::error::Error>> {
-    if let Some(image_name) = &devcontainer.image {
-        if !image_name.is_empty() {
-            println!("Pulling image: {}", image_name);
+// pub async fn create_image(
+//     docker: Arc<Docker>,
+//     devcontainer: &DevBox,
+// ) -> Result<(), Box<dyn std::error::Error>> {
+//     if let Some(image_name) = &devcontainer.image {
+//         if !image_name.is_empty() {
+//             println!("Pulling image: {}", image_name);
 
-            let options = bollard::query_parameters::CreateImageOptionsBuilder::default()
-                .from_image(&image_name)
-                .tag("latest")
-                .repo(&devcontainer.name)
-                .build();
-            docker
-                .create_image(Some(options), None, None)
-                .try_collect::<Vec<_>>()
-                .await?;
-            println!("Tagging image..");
-            let tag_options = bollard::query_parameters::TagImageOptions {
-                repo: Some(devcontainer.name.clone()),
-                tag: Some("latest".to_string()),
-            };
+//             let options = bollard::query_parameters::CreateImageOptionsBuilder::default()
+//                 .from_image(&image_name)
+//                 .tag("latest")
+//                 .repo(&devcontainer.name)
+//                 .build();
+//             docker
+//                 .create_image(Some(options), None, None)
+//                 .try_collect::<Vec<_>>()
+//                 .await?;
+//             println!("Tagging image..");
+//             let tag_options = bollard::query_parameters::TagImageOptions {
+//                 repo: Some(devcontainer.name.clone()),
+//                 tag: Some("latest".to_string()),
+//             };
 
-            docker
-                .tag_image(&format!("{}:latest", image_name), Some(tag_options))
-                .await?;
-        } else {
-            // return Err(Box::new(std::io::Error::other("Image is null")));
-            build_from_local(docker, devcontainer).await?;
-        }
-    }
-    Ok(())
-}
+//             docker
+//                 .tag_image(&format!("{}:latest", image_name), Some(tag_options))
+//                 .await?;
+//         } else {
+//             // return Err(Box::new(std::io::Error::other("Image is null")));
+//             build_from_local(docker, devcontainer).await?;
+//         }
+//     }
+//     Ok(())
+// }
 
 pub async fn build_from_remote(
     docker: Arc<Docker>,

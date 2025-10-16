@@ -59,10 +59,11 @@ pub async fn fetch_container(name: String) -> Result<String, Box<dyn std::error:
 pub async fn create_devbox(
     provider: ProviderEnum,
     docker: Arc<Docker>,
-    devcontainer: DevBox,
+    devcontainer: Option<DevBox>,
+    path: String,
 ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
     let strategy = get_provider_strategy(provider);
-    let result = strategy.create_devbox(docker, devcontainer).await?;
+    let result = strategy.create_devbox(docker, devcontainer, path).await?;
     Ok(result)
 }
 
