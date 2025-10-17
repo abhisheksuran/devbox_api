@@ -1,3 +1,4 @@
+use crate::task_log;
 use crate::utils::build_from_local;
 use bollard::Docker;
 use bollard::models::ContainerCreateBody;
@@ -40,6 +41,8 @@ pub struct DevBox {
     pub post_start_script: Option<Vec<String>>,
     pub start_on_create: Option<bool>,
     pub features: Option<HashMap<String, HashMap<String, serde_json::Value>>>,
+    pub mounts: Vec<String>,
+    pub remote_user: String,
     // pub config: Option<ContainerCreateBody>,
 }
 
@@ -57,7 +60,7 @@ impl DevBox {
     pub async fn new(path: String) -> Self {
         let devbox_cfg_path = format!("{}/devbox.json", path.trim_end_matches('/'));
         let devbox_json = std::fs::read_to_string(&devbox_cfg_path).unwrap();
-        println!("Devbox JSON: {}", devbox_json);
+        task_log!("Devbox JSON: {}", devbox_json);
         let devbox: DevBox = serde_json::from_str(&devbox_json).unwrap();
         devbox
     }
@@ -72,7 +75,7 @@ impl DevBox {
         // let devbox_json = std::fs::read_to_string(&devbox_cfg_path)?;
         // println!("Devbox JSON: {}", devbox_json);
         // let devbox: DevBox = serde_json::from_str(&devbox_json)?;
-        build_from_local(docker, self, Some(&path.trim_end_matches('/').to_string())).await?;
+        build_from_local(docker, self, &path.trim_end_matches('/').to_string()).await?;
 
         Ok(())
     }

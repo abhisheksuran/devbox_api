@@ -29,6 +29,7 @@ validator_derive = "0.16"
 # OpenAPI / Swagger
 utoipa = "5.4.0"
 utoipa-swagger-ui = { version = "9.0.2", features = ["axum"] }
+dashmap = "6.1.0"
 
 [workspace.lints.clippy]
 all = "deny"

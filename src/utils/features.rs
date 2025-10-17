@@ -1,4 +1,5 @@
 use crate::models::{Build, DevBox, DevcontainerFeature, FeatureNode};
+use crate::task_log;
 use bollard::Docker;
 use http_body_util::Full;
 use std::collections::HashMap;
@@ -17,30 +18,44 @@ async fn get_docker_file(
         .map(|features| features.join("\n"))
         .unwrap_or_default();
 
-    let dockerfile = match &devcontainer.features {
-        Some(_features) => {
-            info!("Got features, generating Dockerfile with features...");
-            format!("FROM {}\n{}", &devcontainer.image, sorted_dev_features)
+    let base_image = format!("FROM {}\n{}", &devcontainer.image, sorted_dev_features);
+
+    let dockerfile = match &devcontainer.build {
+        Some(build) => {
+            task_log!("Got build, reading Dockerfile from path...");
+            task_log!("Features will be applied on top of dockerfile base image.");
+            let context = build.context.as_deref().unwrap_or(".");
+
+            // Determine dockerfile path (declare outside branches so it's in scope)
+            let docker_file_path = if context.starts_with("/") {
+                task_log!("Absolute context paths provided.");
+                format!("{}/{}", context.trim_end_matches('/'), build.dockerfile)
+            } else {
+                format!(
+                    "{}/../{}/{}",
+                    dev_path.trim_end_matches('/'),
+                    context.trim_end_matches('/'),
+                    build.dockerfile
+                )
+            };
+
+            let org_dockerfile = std::fs::read_to_string(&docker_file_path)?;
+            // Remove the first line from the original Dockerfile before concatenating
+            let org_dockerfile_without_first = org_dockerfile
+                .lines()
+                .skip(1)
+                .collect::<Vec<_>>()
+                .join("\n");
+
+            let dockerfile = format!("{}\n{}", base_image, org_dockerfile_without_first);
+            dockerfile
         }
         None => {
-            info!("No features found, using base image Dockerfile or defaulting to FROM debian");
-            // let curr_pth = ".".to_string();
-            // let pth = dev_path.unwrap_or(&curr_pth);
-            let context = devcontainer
-                .build
-                .as_ref()
-                .unwrap()
-                .context
-                .as_deref()
-                .unwrap_or(dev_path);
-            let docker_file_path = format!(
-                "{}/{}",
-                context.trim_end_matches('/'),
-                devcontainer.build.as_ref().unwrap().dockerfile
-            );
-            std::fs::read_to_string(docker_file_path)?
+            task_log!("No build specified, generating Dockerfile from base image and features...");
+            base_image
         }
     };
+
     Ok(dockerfile)
 }
 
@@ -101,10 +116,10 @@ fn load_feature(
     features_cmd_map: &mut HashMap<String, Vec<String>>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let full_path = format!("{}/features/{}/devcontainer-feature.json", base_path, name);
-    info!("FULL: {full_path}");
+    task_log!("FULL: {full_path}");
     let feature_json = std::fs::read_to_string(&full_path)?;
     let feature: DevcontainerFeature = serde_json::from_str(&feature_json)?;
-    info!("Loading feature: {}", feature.id);
+    task_log!("Loading feature: {}", feature.id);
     let _ = process_feature(feature.clone(), &params, features_cmd_map);
 
     // Add current feature
@@ -149,7 +164,7 @@ fn feature_to_dockerfile(
     base_path: &String,
     devbox: &DevBox,
 ) -> Result<Vec<String>, Box<dyn std::error::Error>> {
-    info!("Generating Dockerfile from features path: {}", base_path);
+    task_log!("Generating Dockerfile from features path: {}", base_path);
     let mut feature_order: Vec<FeatureNode> = Vec::new();
     let mut features_cmd_map: HashMap<String, Vec<String>> = HashMap::new();
     let mut docker_file_features: Vec<String> = Vec::new();
@@ -170,7 +185,7 @@ fn feature_to_dockerfile(
         }
     }
     // info!("Features Command Map: {:?}", features_cmd_map);
-    info!("Resolved Feature Install Order:");
+    task_log!("Resolved Feature Install Order:");
     let reversed: Vec<_> = feature_order.iter().rev().cloned().collect();
     for node in &reversed {
         for (id, _config) in &node.feature {
@@ -181,7 +196,7 @@ fn feature_to_dockerfile(
             }
         }
     }
-    info!("Dockerfile so far: {:?}", docker_file_features);
+    task_log!("Dockerfile so far: {:?}", docker_file_features);
 
     Ok(docker_file_features)
 }
@@ -189,20 +204,16 @@ fn feature_to_dockerfile(
 pub async fn build_from_local(
     docker: Arc<Docker>,
     devcontainer: &DevBox,
-    path: Option<&String>,
+    path: &String,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let curr_path = ".".to_string();
-    let base_path = path.unwrap_or(&curr_path);
-    let sorted_dev_features = feature_to_dockerfile(base_path, devcontainer).unwrap_or_default();
-    info!("Final Dockerfile Commands: {:?}", sorted_dev_features);
-    let dockerfile = get_docker_file(
-        &devcontainer,
-        Some(&sorted_dev_features),
-        base_path.as_str(),
-    )
-    .await?;
+    // let curr_path = ".".to_string();
+    // let base_path = path.unwrap_or(&curr_path);
+    let sorted_dev_features = feature_to_dockerfile(path, devcontainer).unwrap_or_default();
+    task_log!("Final Dockerfile Commands: {:?}", sorted_dev_features);
+    let dockerfile =
+        get_docker_file(devcontainer, Some(&sorted_dev_features), path.as_str()).await?;
 
-    info!("{:?}", &dockerfile);
+    task_log!("{:?}", &dockerfile);
 
     let mut header = tar::Header::new_gnu();
     header.set_path("Dockerfile").unwrap();
@@ -212,7 +223,7 @@ pub async fn build_from_local(
     let mut tar = tar::Builder::new(Vec::new());
     tar.append(&header, dockerfile.as_bytes()).unwrap();
 
-    let feature_dir = format!("{}/features", path.unwrap_or(&".".to_string()));
+    let feature_dir = format!("{}/features", path);
     let feature_path = std::path::Path::new(&feature_dir);
     tar.append_dir_all("features", feature_path)?;
 
@@ -227,7 +238,7 @@ pub async fn build_from_local(
         .dockerfile("Dockerfile")
         .pull("true");
 
-    info!("Building image..");
+    task_log!("Building image..");
     let mut image_build_stream = docker.build_image(
         build_image_options.build(),
         None,
@@ -238,20 +249,20 @@ pub async fn build_from_local(
         match msg {
             Ok(info) => {
                 if let Some(stream) = info.stream {
-                    info!("Stream {}", stream);
+                    task_log!("Stream {}", stream);
                 }
                 if let Some(status) = info.status {
-                    info!("Status: {}", status);
+                    task_log!("Status: {}", status);
                 }
                 if let Some(aux) = info.aux {
-                    info!("Image ID: {:?}", aux.id);
+                    task_log!("Image ID: {:?}", aux.id);
                 }
                 if let Some(error) = info.error {
-                    info!("Build error: {}", error);
+                    task_log!("Build error: {}", error);
                 }
             }
             Err(e) => {
-                info!("Stream error: {:?}", e);
+                task_log!("Stream error: {:?}", e);
             }
         }
     }

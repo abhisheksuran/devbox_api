@@ -1,8 +1,13 @@
+use crate::logs::TASK_LOGGERS;
 use crate::models::DevBox;
+use crate::task_log;
 use bollard::Docker;
+use bollard::container::LogOutput;
 use bollard::models::ContainerCreateBody;
+use bollard::query_parameters::LogsOptions;
 use futures::stream::StreamExt;
 use std::sync::Arc;
+use tokio::sync::mpsc::Sender;
 use tracing::info;
 
 // use std::io::{Read, Write, stdout};
@@ -19,7 +24,7 @@ pub async fn create(
     docker: Arc<Docker>,
     devcontainer: &DevBox,
 ) -> Result<String, Box<dyn std::error::Error>> {
-    println!("Creating container...");
+    task_log!("Creating container...");
     let image_config = ContainerCreateBody {
         image: Some(devcontainer.name.clone()),
         tty: Some(true),
@@ -42,6 +47,7 @@ pub async fn create(
 }
 
 pub async fn start(docker: Arc<Docker>, id: String) -> Result<(), Box<dyn std::error::Error>> {
+    task_log!("Starting container...");
     docker
         .start_container(
             &id,
@@ -92,6 +98,41 @@ pub async fn exec(
     } else {
         unreachable!();
     }
+}
+
+/// Attach to container logs and forward each chunk to the provided sender.
+pub async fn attach_container_logs(
+    docker: Arc<Docker>,
+    id: String,
+    task_id: String,
+) -> Result<(), Box<dyn std::error::Error>> {
+    task_log!("Attaching to container logs...");
+    let mut logs_stream = docker.logs(
+        &id,
+        Some(LogsOptions {
+            follow: true,
+            stdout: true,
+            stderr: true,
+            tail: "all".to_string(),
+            ..Default::default()
+        }),
+    );
+
+    while let Some(Ok(output)) = logs_stream.next().await {
+        let msg = match output {
+            LogOutput::StdOut { message }
+            | LogOutput::StdErr { message }
+            | LogOutput::Console { message } => String::from_utf8_lossy(&message).to_string(),
+            _ => String::new(),
+        };
+        print!("MSG: {}", msg);
+        if !msg.is_empty() {
+            println!("DATA: {:?}", msg);
+            task_log!("{}", msg);
+        }
+    }
+    TASK_LOGGERS.remove(&task_id);
+    Ok(())
 }
 
 // pub async fn exec(docker: Arc<Docker>, id: String) -> Result<(), Box<dyn std::error::Error>> {

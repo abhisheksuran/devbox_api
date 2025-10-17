@@ -8,6 +8,7 @@ use routes::{all_containers, get_container, new_container, new_devbox, websocket
 use std::sync::Arc;
 mod db;
 mod handlers;
+mod logs;
 mod models;
 mod openapi;
 mod providers;
