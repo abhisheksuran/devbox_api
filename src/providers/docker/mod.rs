@@ -4,27 +4,30 @@ mod image;
 
 use crate::logs::{ASYNC_TASK_ID, get_blocking_task_id};
 use crate::models::DevBox;
-use crate::providers::DevBoxProvider;
+use crate::providers::{AppState, DevBoxProvider};
 use crate::task_log;
 
 pub use action::handle_exec_stream;
-use axum::extract::path;
 use bollard::Docker;
 use container::{create, exec, remove, start};
 // use image::create_image;
 use serde_json::json;
 use std::sync::Arc;
 
-pub struct DockerProvider;
+#[derive(Clone)]
+pub struct DockerProvider {
+    pub connection: Arc<Docker>,
+}
 
 #[async_trait::async_trait]
 impl DevBoxProvider for DockerProvider {
     async fn create_devbox(
         &self,
-        docker: Arc<Docker>,
         devcontainer: Option<DevBox>,
         path: String,
     ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+        let docker = self.connection.clone();
+
         // create_image(docker.clone(), &devcontainer).await?;
         let devcontainer = match devcontainer {
             Some(dc) => dc,
@@ -40,23 +43,15 @@ impl DevBoxProvider for DockerProvider {
         let docker_clone = docker.clone();
         let id_clone = id.clone();
 
-        let task_id = if get_blocking_task_id().is_some() {
-            get_blocking_task_id().unwrap()
-        } else {
-            String::new()
-        };
+        // let task_id = if get_blocking_task_id().is_some() {
+        //     get_blocking_task_id().unwrap()
+        // } else {
+        //     String::new()
+        // };
 
-        task_log!("Current blocking task ID: {}", task_id);
-        // tokio::spawn(async move {
-        //     set_async_task_id(task_id.clone());
-        //     if let Err(e) =
-        //         crate::providers::docker::container::attach_container_logs(docker_clone, id_clone)
-        //             .await
-        //     {
-        //         task_log!("attach_container_logs failed: {:?}", e);
-        //     }
-        // });
+        // task_log!("Current blocking task ID: {}", task_id);
 
+        let task_id = ASYNC_TASK_ID.with(|id| id.clone());
         tokio::spawn(ASYNC_TASK_ID.scope(task_id.clone(), async move {
             if let Err(e) = crate::providers::docker::container::attach_container_logs(
                 docker_clone,

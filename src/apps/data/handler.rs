@@ -1,12 +1,6 @@
 use crate::db::DefaultDB;
-use crate::models::{Container, ContainerConfig, DevBox};
-use crate::providers::ProviderEnum;
-use crate::providers::get_provider_strategy;
-use bollard::Docker;
-use futures::future::ok;
+use crate::models::{Container, ContainerConfig};
 use rusqlite::params;
-use std::sync::Arc;
-use tracing::{error, info};
 
 pub async fn list_containers() -> Result<String, Box<dyn std::error::Error>> {
     let conn = DefaultDB::get_db()?;
@@ -55,26 +49,3 @@ pub async fn fetch_container(name: String) -> Result<String, Box<dyn std::error:
     let json = serde_json::to_string(&container)?;
     Ok(json)
 }
-
-pub async fn create_devbox(
-    provider: ProviderEnum,
-    docker: Arc<Docker>,
-    devcontainer: Option<DevBox>,
-    path: String,
-) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
-    let strategy = get_provider_strategy(provider);
-    let result = strategy.create_devbox(docker, devcontainer, path).await?;
-    Ok(result)
-}
-
-// pub async fn remove_devbox(
-//     id: String,
-//     docker: Arc<Docker>,
-// ) -> Result<(), Box<dyn std::error::Error>> {
-//     // Here you would implement the logic to remove the devbox/container
-//     // For example, using the Docker API to stop and remove the container
-//     // and then removing its record from the database.
-
-//     // Placeholder implementation:
-//     info!("Removing devbox with ID: {}", id);
-// }

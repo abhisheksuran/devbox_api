@@ -1,35 +1,36 @@
+use apps::config::config_routes;
+use apps::data::data_routes; //,new_devbox, websocket_exec_handler};
+use apps::devbox::devbox_routes;
 use axum::{
     Router,
     routing::{get, post},
 };
-use bollard::Docker;
 use http::{HeaderName, HeaderValue, Method};
-use routes::{all_containers, get_container, new_container, new_devbox, websocket_exec_handler};
+use providers::AppState;
 use std::sync::Arc;
+use tokio::sync::RwLock;
+mod apps;
 mod db;
-mod handlers;
 mod logs;
 mod models;
 mod openapi;
 mod providers;
-mod routes;
 mod utils;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::fmt::init();
-    let docker = Arc::new(Docker::connect_with_local_defaults()?);
+    let app_state: Arc<RwLock<Option<AppState>>> = Arc::new(RwLock::new(None));
     let cors = tower_http::cors::CorsLayer::new()
         .allow_origin([HeaderValue::from_static("http://127.0.0.1:3000")])
         .allow_methods([Method::GET, Method::POST])
         .allow_headers([HeaderName::from_static("content-type")]);
 
     let app = Router::new()
-        .route("/container/get", get(get_container))
-        .route("/container/list", get(all_containers))
-        .route("/container/create", post(new_container))
-        .route("/devbox/create", post(new_devbox))
-        .route("/ws/docker/{id}", get(websocket_exec_handler))
+        .with_state(app_state.clone())
+        .nest("/container", data_routes(app_state.clone()))
+        .nest("/devbox", devbox_routes(app_state.clone()))
+        .nest("/config", config_routes(app_state.clone()))
         // OpenAPI JSON
         .route(
             "/api-docs/openapi.json",
@@ -69,8 +70,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }),
         )
         .layer(tower_http::trace::TraceLayer::new_for_http())
-        .layer(cors)
-        .with_state(docker.clone());
+        .layer(cors);
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:8000")
         .await

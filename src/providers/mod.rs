@@ -1,5 +1,5 @@
-mod aws;
-mod azure;
+pub mod aws;
+pub mod azure;
 pub mod docker;
 
 use crate::models::DevBox;
@@ -20,19 +20,39 @@ pub enum ProviderEnum {
 }
 
 #[async_trait::async_trait]
+pub trait Connection {}
+
+#[async_trait::async_trait]
 pub trait DevBoxProvider {
     async fn create_devbox(
         &self,
-        docker: Arc<Docker>,
         devcontainer: Option<DevBox>,
         path: String,
     ) -> Result<serde_json::Value, Box<dyn std::error::Error>>;
 }
 
-pub fn get_provider_strategy(provider: ProviderEnum) -> Box<dyn DevBoxProvider + Send + Sync> {
-    match provider {
-        ProviderEnum::Docker => Box::new(DockerProvider),
-        ProviderEnum::Azure => Box::new(AzureProvider),
-        ProviderEnum::Aws => Box::new(AwsProvider),
+#[derive(Clone)]
+pub struct AppState {
+    pub docker: DockerProvider,
+    pub azure: AzureProvider,
+    pub aws: AwsProvider,
+    pub artifactory: String,
+    pub log_storage_path: String,
+}
+
+impl AppState {
+    pub fn get_provider_strategy(
+        &self,
+        provider: ProviderEnum,
+    ) -> Box<dyn DevBoxProvider + Send + Sync> {
+        match provider {
+            ProviderEnum::Docker => Box::new(self.docker.clone()),
+            ProviderEnum::Azure => Box::new(self.azure.clone()),
+            ProviderEnum::Aws => Box::new(self.aws.clone()),
+        }
+    }
+
+    pub fn get_docker_connection(&self) -> Arc<Docker> {
+        self.docker.connection.clone()
     }
 }
