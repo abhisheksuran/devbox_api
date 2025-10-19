@@ -1,9 +1,9 @@
 use crate::apps::devbox::{ProviderQuery, create_devbox};
-use crate::logs::{ASYNC_TASK_ID, TASK_LOGGERS, set_blocking_task_id};
+use crate::logs::{ASYNC_TASK_ID, TASK_LOGGERS};
 use crate::models::DevBox;
-use crate::providers::AppState;
 use crate::providers::docker::handle_exec_stream;
 use crate::task_log;
+use crate::utils::AppState;
 
 use axum::{
     Json,

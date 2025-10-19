@@ -43,6 +43,11 @@ pub struct DevBox {
     pub features: Option<HashMap<String, HashMap<String, serde_json::Value>>>,
     pub mounts: Vec<String>,
     pub remote_user: String,
+    pub ports: Option<Vec<u16>>,
+    pub cpu_limit: Option<f64>,
+    pub memory_limit: Option<f64>,
+    pub target_platform: Option<String>,
+    pub environment: Option<HashMap<String, String>>,
     // pub config: Option<ContainerCreateBody>,
 }
 

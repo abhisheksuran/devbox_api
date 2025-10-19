@@ -6,7 +6,7 @@ pub use handler::*;
 pub use model::*;
 pub use router::{__path_new_devbox, new_devbox, websocket_exec_handler};
 
-use crate::providers::AppState;
+use crate::utils::AppState;
 use axum::{
     Router,
     routing::{get, post},

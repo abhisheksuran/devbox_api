@@ -2,9 +2,9 @@ mod action;
 mod container;
 mod image;
 
-use crate::logs::{ASYNC_TASK_ID, get_blocking_task_id};
+use crate::logs::ASYNC_TASK_ID;
 use crate::models::DevBox;
-use crate::providers::{AppState, DevBoxProvider};
+use crate::providers::DevBoxProvider;
 use crate::task_log;
 
 pub use action::handle_exec_stream;
@@ -21,6 +21,10 @@ pub struct DockerProvider {
 
 #[async_trait::async_trait]
 impl DevBoxProvider for DockerProvider {
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+
     async fn create_devbox(
         &self,
         devcontainer: Option<DevBox>,

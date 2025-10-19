@@ -1,13 +1,19 @@
 use crate::models::DevBox;
 use crate::providers::DevBoxProvider;
-use bollard::Docker;
-use std::sync::Arc;
 
-#[derive(Clone)]
-pub struct AwsProvider;
+#[derive(Clone, serde::Deserialize, serde::Serialize)]
+pub struct AwsProvider {
+    access_key: String,
+    secret_key: String,
+    region: String,
+}
 
 #[async_trait::async_trait]
 impl DevBoxProvider for AwsProvider {
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+
     async fn create_devbox(
         &self,
         devcontainer: Option<DevBox>,

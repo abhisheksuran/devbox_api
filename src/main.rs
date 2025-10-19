@@ -6,9 +6,9 @@ use axum::{
     routing::{get, post},
 };
 use http::{HeaderName, HeaderValue, Method};
-use providers::AppState;
 use std::sync::Arc;
 use tokio::sync::RwLock;
+use utils::AppState;
 mod apps;
 mod db;
 mod logs;

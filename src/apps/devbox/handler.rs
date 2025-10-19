@@ -1,6 +1,6 @@
 use crate::models::DevBox;
-use crate::providers::AppState;
 use crate::providers::ProviderEnum;
+use crate::utils::AppState;
 use std::sync::Arc;
 use tracing::{error, info};
 

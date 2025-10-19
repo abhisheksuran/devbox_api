@@ -5,7 +5,7 @@ mod router;
 pub use handler::*;
 pub use model::*;
 
-use crate::providers::AppState;
+use crate::utils::AppState;
 use axum::{
     Router,
     routing::{get, post},

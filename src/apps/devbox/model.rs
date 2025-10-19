@@ -1,4 +1,4 @@
-use crate::models::{DevBox, DevcontainerFeature};
+use crate::models::DevBox;
 use crate::providers::ProviderEnum;
 
 use axum::response::{IntoResponse, Response};
