@@ -1,7 +1,6 @@
 use crate::providers::{
     DevBoxProvider, ProviderEnum, aws::AwsProvider, azure::AzureProvider, docker::DockerProvider,
 };
-use crate::utils::artifactory::Artifactory;
 use bollard::Docker;
 use std::sync::Arc;
 
@@ -26,6 +25,6 @@ impl AppState {
     }
 
     pub fn get_docker_connection(&self) -> Arc<Docker> {
-        self.docker.connection.clone()
+        self.docker.get_connection()
     }
 }

@@ -2,10 +2,10 @@ mod action;
 mod container;
 mod image;
 
-use crate::logs::ASYNC_TASK_ID;
 use crate::models::DevBox;
 use crate::providers::DevBoxProvider;
 use crate::task_log;
+use crate::{logs::ASYNC_TASK_ID, utils::artifactory::Artifactory};
 
 pub use action::handle_exec_stream;
 use bollard::Docker;
@@ -16,7 +16,21 @@ use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct DockerProvider {
-    pub connection: Arc<Docker>,
+    artifactory: Option<Artifactory>,
+    connection: Arc<Docker>,
+}
+
+impl DockerProvider {
+    pub fn new(connection: Arc<Docker>, artifactory: Option<Artifactory>) -> Self {
+        DockerProvider {
+            connection,
+            artifactory,
+        }
+    }
+
+    pub fn get_connection(&self) -> Arc<Docker> {
+        self.connection.clone()
+    }
 }
 
 #[async_trait::async_trait]
