@@ -9,7 +9,7 @@ use crate::{logs::ASYNC_TASK_ID, utils::artifactory::Artifactory};
 
 pub use action::handle_exec_stream;
 use bollard::Docker;
-use container::{create, exec, remove, start};
+use container::{create, exec, remove, start, stop};
 // use image::create_image;
 use serde_json::json;
 use std::sync::Arc;
@@ -40,7 +40,7 @@ impl DevBoxProvider for DockerProvider {
     }
 
     async fn create_devbox(
-        &self,
+        &mut self,
         devcontainer: Option<DevBox>,
         path: String,
     ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
@@ -87,5 +87,29 @@ impl DevBoxProvider for DockerProvider {
         }
 
         Ok(json!({ "status": "success", "container_id": id }))
+    }
+
+    async fn delete_devbox(&self, id: String) -> Result<(), Box<dyn std::error::Error>> {
+        let docker = self.connection.clone();
+        match remove(docker, id).await {
+            Ok(()) => Ok(()),
+            _ => Err("Fail to delete container".into()),
+        }
+    }
+
+    async fn start_devbox(&self, id: String) -> Result<(), Box<dyn std::error::Error>> {
+        let docker = self.connection.clone();
+        match start(docker, id).await {
+            Ok(()) => Ok(()),
+            _ => Err("Fail to start container".into()),
+        }
+    }
+
+    async fn stop_devbox(&self, id: String) -> Result<(), Box<dyn std::error::Error>> {
+        let docker = self.connection.clone();
+        match stop(docker, id).await {
+            Ok(()) => Ok(()),
+            _ => Err("Fail to stop container".into()),
+        }
     }
 }

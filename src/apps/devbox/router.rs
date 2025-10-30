@@ -1,9 +1,12 @@
-use crate::apps::devbox::{ProviderQuery, create_devbox};
+use crate::apps::devbox::{
+    ActionEnum, ProviderQuery, action_devbox, create_devbox, list_devbox, validate_state,
+};
 use crate::logs::{ASYNC_TASK_ID, TASK_LOGGERS};
 use crate::models::DevBox;
 use crate::providers::docker::handle_exec_stream;
 use crate::task_log;
 use crate::utils::AppState;
+use axum::http::StatusCode;
 
 use axum::{
     Json,
@@ -47,6 +50,11 @@ pub async fn new_devbox(
     let provider = params.provider;
     let path_param = params.path;
     let state = state.clone();
+
+    let is_state_initialized = validate_state(state.clone(), provider.clone()).await;
+    if !is_state_initialized.status().is_success() {
+        return is_state_initialized;
+    }
 
     // convert Option<Json<DevBox>> -> Option<DevBox>
     let devcontainer = devcontainer.clone().map(|j| j.0);
@@ -149,16 +157,35 @@ pub async fn websocket_exec_handler(
     ws.on_upgrade(move |socket| handle_exec_stream(socket, docker, id))
 }
 
-// Delete /devbox/{id}
-// pub async fn delete_devbox(
-//     Path(id): Path<String>,
-//     State(docker): State<Arc<Docker>>,
-// ) -> StatusCode {
-//     match crate::providers::docker::remove(docker.clone(), id).await {
-//         Ok(_) => StatusCode::OK,
-//         Err(e) => {
-//             error!("delete_devbox failed: {:?}", e);
-//             StatusCode::INTERNAL_SERVER_ERROR
-//         }
-//     }
-// }
+pub async fn action_on_devbox(
+    Path(id): Path<String>,
+    Query(action): Query<ActionEnum>,
+    State(state): State<Arc<RwLock<Option<AppState>>>>,
+) -> impl IntoResponse {
+    let guard = state.read().await;
+
+    let state = match &*guard {
+        Some(state) => state.clone(),
+        None => {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "AppState not initialized",
+            ));
+        }
+    };
+
+    match action_devbox(id, &state, action).await {
+        Ok(result) => Ok(Json(result)),
+        Err(_) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Failed to perform action",
+        )),
+    }
+}
+
+pub async fn list_all_devbox() -> impl IntoResponse {
+    match list_devbox().await {
+        Ok(result) => Ok(Json(result)),
+        Err(_) => Err((StatusCode::INTERNAL_SERVER_ERROR, "Failed to list devbox")),
+    }
+}

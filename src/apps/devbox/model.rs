@@ -1,15 +1,32 @@
+use std::sync::Arc;
+
 use crate::models::DevBox;
 use crate::providers::ProviderEnum;
+use crate::utils::AppState;
 
 use axum::response::{IntoResponse, Response};
 use axum::{Json, http::StatusCode};
 use serde_json::json;
+use tokio::sync::RwLock;
 use tracing::{error, info};
 use utoipa::IntoParams;
 use utoipa::ToSchema;
 use validator::Validate;
 use validator::ValidationError;
 use validator_derive::Validate;
+
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[serde(rename_all = "lowercase")]
+pub enum ActionEnum {
+    Start,
+    Stop,
+    Delete,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Debug)]
+pub struct ActionQuery {
+    pub action: ActionEnum,
+}
 
 #[derive(serde::Serialize, serde::Deserialize, Validate, IntoParams, ToSchema)]
 pub struct ProviderQuery {
@@ -47,4 +64,33 @@ pub fn validator(params: &ProviderQuery, devcontainer: Option<&DevBox>) -> Respo
 
 fn error_response(status: StatusCode, message: &str) -> Response {
     (status, Json(json!({ "error": message }))).into_response()
+}
+
+pub async fn validate_state(
+    state: Arc<RwLock<Option<AppState>>>,
+    provider: ProviderEnum,
+) -> Response {
+    let guard = state.read().await;
+
+    let app_state = match &*guard {
+        Some(state) => state.clone(),
+        None => return error_response(StatusCode::BAD_REQUEST, "AppState is not initialized"),
+    };
+
+    match provider {
+        ProviderEnum::Azure => match &app_state.azure {
+            Some(_val) => (),
+            None => {
+                return error_response(StatusCode::BAD_REQUEST, "Azure config is not initialized");
+            }
+        },
+        ProviderEnum::Aws => match &app_state.aws {
+            Some(_val) => (),
+            None => {
+                return error_response(StatusCode::BAD_REQUEST, "Aws config is not initialized");
+            }
+        },
+        ProviderEnum::Docker => (),
+    }
+    Response::default()
 }

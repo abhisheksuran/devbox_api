@@ -1,7 +1,10 @@
+use tracing::{error, info};
+
 use crate::task_log;
 use bollard::Docker;
 use bollard::auth::DockerCredentials;
 use bollard::query_parameters::PushImageOptions;
+use bollard::query_parameters::TagImageOptions;
 use futures_util::stream::StreamExt;
 
 #[derive(Clone, serde::Deserialize, serde::Serialize)]
@@ -27,17 +30,29 @@ impl Artifactory {
         }
     }
 
-    pub async fn push_image(&self, image_name: &str, tag: &str) -> String {
+    pub async fn push_image(&self, devbox_image: &str, tag: &str) -> String {
         // Initialize Docker client
         let docker = Docker::connect_with_local_defaults().unwrap();
 
         // Define the image name and tag
-        let image_name = format!("{}/{}/{}", self.server, self.repository_name, image_name);
+        let image_name = format!("{}/{}/{}", self.server, self.repository_name, devbox_image);
 
+        task_log!("Tagging image");
+        let tag_options = TagImageOptions {
+            repo: Some(image_name.clone()),
+            tag: Some("latest".to_string()),
+        };
+
+        match docker.tag_image(devbox_image, Some(tag_options)).await {
+            Ok(_) => task_log!("Image tagged successfully"),
+            Err(e) => task_log!("Failed to tag image: {}", e),
+        }
+        task_log!("Tagging completed");
         // Set up authentication credentials for Artifactory
         let credentials = DockerCredentials {
             username: self.username.clone(),
             password: self.password.clone(),
+            serveraddress: Some(self.server.clone()),
             ..Default::default()
         };
 

@@ -14,16 +14,42 @@ pub enum ProviderEnum {
     Aws,
 }
 
-#[async_trait::async_trait]
-pub trait Connection {}
+impl From<String> for ProviderEnum {
+    fn from(s: String) -> Self {
+        match s.as_str() {
+            "aws" => ProviderEnum::Aws,
+            "azure" => ProviderEnum::Azure,
+            _ => ProviderEnum::Docker,
+        }
+    }
+}
+
+// impl TryFrom<String> for ProviderEnum {
+//     type Error = String;
+
+//     fn try_from(value: String) -> Result<Self, Self::Error> {
+//         match value.as_str() {
+//             "aws" => Ok(ProviderEnum::Aws),
+//             "azure" => Ok(ProviderEnum::Azure),
+//             "docker" => Ok(ProviderEnum::Docker),
+//             _ => Err(format!("Unknown provider: {}", value)),
+//         }
+//     }
+// }
 
 #[async_trait::async_trait]
 pub trait DevBoxProvider {
     async fn create_devbox(
-        &self,
+        &mut self,
         devcontainer: Option<DevBox>,
         path: String,
     ) -> Result<serde_json::Value, Box<dyn std::error::Error>>;
+
+    async fn delete_devbox(&self, id: String) -> Result<(), Box<dyn std::error::Error>>;
+
+    async fn start_devbox(&self, id: String) -> Result<(), Box<dyn std::error::Error>>;
+
+    async fn stop_devbox(&self, id: String) -> Result<(), Box<dyn std::error::Error>>;
 
     fn as_any(&self) -> &dyn std::any::Any;
 }

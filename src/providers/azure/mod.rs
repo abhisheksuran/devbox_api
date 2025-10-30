@@ -1,12 +1,20 @@
 mod container;
+
+use bollard::Docker;
 use container::{
     Container, ContainerGroup, ContainerGroupProperties, ContainerProperties,
     ImageRegistryCredential, IpAddress, IpPort, Port, ResourceRequests, Resources, create,
+    wait_until_running,
 };
+use std::sync::Arc;
 
 use crate::models::DevBox;
 use crate::providers::DevBoxProvider;
+use crate::task_log;
 use crate::utils::artifactory::Artifactory;
+use azure_core::credentials::AccessToken;
+use azure_core::credentials::TokenCredential;
+use azure_identity::AzureCliCredential;
 
 #[derive(Clone, serde::Deserialize, serde::Serialize)]
 pub struct AzureProvider {
@@ -19,6 +27,17 @@ pub struct AzureProvider {
     artifactory: Artifactory,
 }
 
+impl AzureProvider {
+    async fn get_token(&mut self) -> Result<AccessToken, Box<dyn std::error::Error>> {
+        let credentials = AzureCliCredential::new(None)?;
+        let token = credentials
+            .get_token(&["https://management.azure.com/.default"], None)
+            .await?;
+        self.token = token.token.secret().to_string();
+        Ok(token)
+    }
+}
+
 #[async_trait::async_trait]
 impl DevBoxProvider for AzureProvider {
     fn as_any(&self) -> &dyn std::any::Any {
@@ -26,7 +45,7 @@ impl DevBoxProvider for AzureProvider {
     }
 
     async fn create_devbox(
-        &self,
+        &mut self,
         devcontainer: Option<DevBox>,
         path: String,
     ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
@@ -34,6 +53,13 @@ impl DevBoxProvider for AzureProvider {
             Some(dc) => dc,
             None => DevBox::new(path.clone()).await,
         };
+        let devcontainer_cp = devcontainer.clone();
+
+        let docker = Arc::new(Docker::connect_with_local_defaults().unwrap());
+        devcontainer
+            .create_image(path, docker.clone().into())
+            .await?;
+
         let image = self
             .artifactory
             .push_image(&devcontainer.image, "latest")
@@ -71,8 +97,40 @@ impl DevBoxProvider for AzureProvider {
                 }],
             },
         };
-        create(container_group).await?;
-        let azure_url = "https://management.azure.com/.default";
-        todo!("Implement this feature later");
+
+        self.get_token();
+        task_log!("Creating Azure Container Instance");
+        let id = create(
+            &devcontainer_cp.name,
+            container_group,
+            &self.subscription,
+            &self.resource_group,
+            &self.token,
+        )
+        .await?;
+
+        match wait_until_running(
+            &devcontainer_cp.name,
+            &self.subscription,
+            &self.resource_group,
+            &self.token,
+        )
+        .await
+        {
+            Ok(()) => Ok(serde_json::json!({ "status": "success", "container_id": id })),
+            _ => Err("Fail to create container".into()),
+        }
+    }
+
+    async fn delete_devbox(&self, id: String) -> Result<(), Box<dyn std::error::Error>> {
+        todo!("To be implemented");
+    }
+
+    async fn start_devbox(&self, id: String) -> Result<(), Box<dyn std::error::Error>> {
+        todo!("To be implemented");
+    }
+
+    async fn stop_devbox(&self, id: String) -> Result<(), Box<dyn std::error::Error>> {
+        todo!("To be implemented");
     }
 }

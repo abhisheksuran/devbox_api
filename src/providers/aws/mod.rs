@@ -1,5 +1,6 @@
 use crate::models::DevBox;
 use crate::providers::DevBoxProvider;
+mod container;
 
 #[derive(Clone, serde::Deserialize, serde::Serialize)]
 pub struct AwsProvider {
@@ -15,10 +16,22 @@ impl DevBoxProvider for AwsProvider {
     }
 
     async fn create_devbox(
-        &self,
+        &mut self,
         devcontainer: Option<DevBox>,
         path: String,
     ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         todo!("Implement this feature later");
+    }
+
+    async fn delete_devbox(&self, id: String) -> Result<(), Box<dyn std::error::Error>> {
+        todo!("To be implemented");
+    }
+
+    async fn start_devbox(&self, id: String) -> Result<(), Box<dyn std::error::Error>> {
+        todo!("To be implemented");
+    }
+
+    async fn stop_devbox(&self, id: String) -> Result<(), Box<dyn std::error::Error>> {
+        todo!("To be implemented");
     }
 }

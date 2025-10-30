@@ -46,6 +46,14 @@ pub async fn create(
     Ok(id)
 }
 
+pub async fn stop(docker: Arc<Docker>, id: String) -> Result<(), Box<dyn std::error::Error>> {
+    task_log!("Starting container...");
+    docker
+        .stop_container(&id, None::<bollard::query_parameters::StopContainerOptions>)
+        .await?;
+    Ok(())
+}
+
 pub async fn start(docker: Arc<Docker>, id: String) -> Result<(), Box<dyn std::error::Error>> {
     task_log!("Starting container...");
     docker
@@ -58,7 +66,7 @@ pub async fn start(docker: Arc<Docker>, id: String) -> Result<(), Box<dyn std::e
 }
 
 pub async fn remove(docker: Arc<Docker>, id: String) -> Result<(), Box<dyn std::error::Error>> {
-    docker
+    match docker
         .remove_container(
             &id,
             Some(
@@ -67,8 +75,11 @@ pub async fn remove(docker: Arc<Docker>, id: String) -> Result<(), Box<dyn std::
                     .build(),
             ),
         )
-        .await?;
-    Ok(())
+        .await
+    {
+        Ok(()) => Ok(()),
+        _ => Err("Fail to delete container".into()),
+    }
 }
 
 pub async fn exec(
