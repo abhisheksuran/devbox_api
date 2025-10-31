@@ -2,6 +2,7 @@ mod action;
 mod container;
 mod image;
 
+use crate::db::{delete_container, insert_container, update_container_status};
 use crate::models::DevBox;
 use crate::providers::DevBoxProvider;
 use crate::task_log;
@@ -16,7 +17,7 @@ use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct DockerProvider {
-    artifactory: Option<Artifactory>,
+    pub artifactory: Option<Artifactory>,
     connection: Arc<Docker>,
 }
 
@@ -70,6 +71,7 @@ impl DevBoxProvider for DockerProvider {
         // task_log!("Current blocking task ID: {}", task_id);
 
         let task_id = ASYNC_TASK_ID.with(|id| id.clone());
+        let t_id = task_id.clone();
         tokio::spawn(ASYNC_TASK_ID.scope(task_id.clone(), async move {
             if let Err(e) = crate::providers::docker::container::attach_container_logs(
                 docker_clone,
@@ -86,30 +88,48 @@ impl DevBoxProvider for DockerProvider {
             exec(docker, id.clone(), Some(script)).await?;
         }
 
+        let status = match devcontainer.start_on_create {
+            Some(_s) => {
+                if _s {
+                    "running"
+                } else {
+                    "created"
+                }
+            }
+            None => "created",
+        };
+        insert_container("docker", &devcontainer.name, status, &t_id, &id.clone()).await?;
         Ok(json!({ "status": "success", "container_id": id }))
     }
 
     async fn delete_devbox(&self, id: String) -> Result<(), Box<dyn std::error::Error>> {
         let docker = self.connection.clone();
-        match remove(docker, id).await {
-            Ok(()) => Ok(()),
-            _ => Err("Fail to delete container".into()),
-        }
+        match remove(docker, id.clone()).await {
+            Ok(()) => (),
+            _ => return Err("Fail to delete container".into()),
+        };
+        delete_container(id).await?;
+        Ok(())
     }
 
     async fn start_devbox(&self, id: String) -> Result<(), Box<dyn std::error::Error>> {
         let docker = self.connection.clone();
-        match start(docker, id).await {
-            Ok(()) => Ok(()),
-            _ => Err("Fail to start container".into()),
+        match start(docker, id.clone()).await {
+            Ok(()) => (),
+            _ => return Err("Fail to start container".into()),
         }
+
+        update_container_status(&id, "running").await?;
+        Ok(())
     }
 
     async fn stop_devbox(&self, id: String) -> Result<(), Box<dyn std::error::Error>> {
         let docker = self.connection.clone();
-        match stop(docker, id).await {
-            Ok(()) => Ok(()),
-            _ => Err("Fail to stop container".into()),
+        match stop(docker, id.clone()).await {
+            Ok(()) => (),
+            _ => return Err("Fail to stop container".into()),
         }
+        update_container_status(&id, "stopped").await?;
+        Ok(())
     }
 }

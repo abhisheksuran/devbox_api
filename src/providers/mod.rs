@@ -24,6 +24,16 @@ impl From<String> for ProviderEnum {
     }
 }
 
+impl ToString for ProviderEnum {
+    fn to_string(&self) -> String {
+        match self {
+            ProviderEnum::Docker => "docker".to_string(),
+            ProviderEnum::Azure => "azure".to_string(),
+            ProviderEnum::Aws => "aws".to_string(),
+        }
+    }
+}
+
 // impl TryFrom<String> for ProviderEnum {
 //     type Error = String;
 

@@ -1,6 +1,7 @@
 use crate::apps::devbox::{
-    ActionEnum, ProviderQuery, action_devbox, create_devbox, list_devbox, validate_state,
+    ActionQuery, ProviderQuery, action_devbox, create_devbox, validate_state,
 };
+use crate::db::{insert_task, list_containers};
 use crate::logs::{ASYNC_TASK_ID, TASK_LOGGERS};
 use crate::models::DevBox;
 use crate::providers::docker::handle_exec_stream;
@@ -49,6 +50,7 @@ pub async fn new_devbox(
 
     let provider = params.provider;
     let path_param = params.path;
+    let path = path_param.clone();
     let state = state.clone();
 
     let is_state_initialized = validate_state(state.clone(), provider.clone()).await;
@@ -131,6 +133,7 @@ pub async fn new_devbox(
     //     task_log!("Devbox task {} launched", task_id);
     // });
 
+    let _ = insert_task(&task_id, &provider.to_string(), "initiated", path).await;
     (Json(json!({ "task_id": task_id }))).into_response()
 }
 
@@ -159,7 +162,7 @@ pub async fn websocket_exec_handler(
 
 pub async fn action_on_devbox(
     Path(id): Path<String>,
-    Query(action): Query<ActionEnum>,
+    Query(action): Query<ActionQuery>,
     State(state): State<Arc<RwLock<Option<AppState>>>>,
 ) -> impl IntoResponse {
     let guard = state.read().await;
@@ -173,6 +176,7 @@ pub async fn action_on_devbox(
             ));
         }
     };
+    let action = action.action;
 
     match action_devbox(id, &state, action).await {
         Ok(result) => Ok(Json(result)),
@@ -184,7 +188,7 @@ pub async fn action_on_devbox(
 }
 
 pub async fn list_all_devbox() -> impl IntoResponse {
-    match list_devbox().await {
+    match list_containers().await {
         Ok(result) => Ok(Json(result)),
         Err(_) => Err((StatusCode::INTERNAL_SERVER_ERROR, "Failed to list devbox")),
     }

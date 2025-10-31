@@ -47,7 +47,7 @@ pub async fn create(
 }
 
 pub async fn stop(docker: Arc<Docker>, id: String) -> Result<(), Box<dyn std::error::Error>> {
-    task_log!("Starting container...");
+    task_log!("Stopping container...");
     docker
         .stop_container(&id, None::<bollard::query_parameters::StopContainerOptions>)
         .await?;

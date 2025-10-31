@@ -35,14 +35,14 @@ impl DB {
             [],
         )?;
         conn.execute(
-            "CREATE TABLE IF NOT EXISTS provider (
+            "CREATE TABLE IF NOT EXISTS providers (
                 name TEXT NOT NULL, 
                 config TEXT NOT NULL
             )",
             [],
         )?;
         conn.execute(
-            "CREATE TABLE IF NOT EXISTS task (
+            "CREATE TABLE IF NOT EXISTS tasks (
                 id TEXT PRIMARY KEY,
                 provider TEXT NOT NULL,
                 status TEXT NOT NULL, 

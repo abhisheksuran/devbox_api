@@ -3,6 +3,7 @@ use bollard::Docker;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
+use crate::db::{insert_provider, update_provider_db};
 use crate::providers::DevBoxProvider;
 use crate::providers::aws::AwsProvider;
 use crate::providers::azure::AzureProvider;
@@ -32,6 +33,10 @@ pub async fn update_state(State(state): State<Arc<RwLock<Option<AppState>>>>) ->
                 log_storage_path: String::from("/var/log/devbox/"),
             };
             *guard = Some(new_state.clone());
+
+            let _ = insert_provider("docker", "").await;
+            let _ = insert_provider("azure", "").await;
+            let _ = insert_provider("aws", "").await;
         }
     }
     Response::default()
@@ -47,10 +52,22 @@ pub async fn update_provider(
 
     if let Some(azure) = provider.as_any().downcast_ref::<AzureProvider>() {
         azure_provider = Some(azure.clone());
+        update_provider_db("azure", serde_json::to_string(azure).unwrap())
+            .await
+            .unwrap();
     } else if let Some(aws) = provider.as_any().downcast_ref::<AwsProvider>() {
         aws_provider = Some(aws.clone());
+        update_provider_db("aws", serde_json::to_string(aws).unwrap())
+            .await
+            .unwrap();
     } else if let Some(docker) = provider.as_any().downcast_ref::<DockerProvider>() {
         docker_provider = Some(docker.clone());
+        update_provider_db(
+            "docker",
+            serde_json::to_string(&docker.artifactory).unwrap(),
+        )
+        .await
+        .unwrap();
     } else {
         // Unsupported provider
         return Response::default();
@@ -81,6 +98,9 @@ pub async fn update_provider(
                 log_storage_path: String::from("/var/log/devbox/"),
             };
             *guard = Some(new_state.clone());
+            let _ = insert_provider("docker", "").await;
+            let _ = insert_provider("azure", "").await;
+            let _ = insert_provider("aws", "").await;
         }
     }
     Response::default()
