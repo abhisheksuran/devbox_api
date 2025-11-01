@@ -4,10 +4,10 @@ use crate::task_log;
 use bollard::Docker;
 use bollard::container::LogOutput;
 use bollard::models::ContainerCreateBody;
+use bollard::query_parameters::InspectContainerOptions;
 use bollard::query_parameters::LogsOptions;
 use futures::stream::StreamExt;
 use std::sync::Arc;
-use tokio::sync::mpsc::Sender;
 use tracing::info;
 
 // use std::io::{Read, Write, stdout};
@@ -79,6 +79,32 @@ pub async fn remove(docker: Arc<Docker>, id: String) -> Result<(), Box<dyn std::
     {
         Ok(()) => Ok(()),
         _ => Err("Fail to delete container".into()),
+    }
+}
+
+pub async fn status(docker: Arc<Docker>, id: String) -> Result<String, Box<dyn std::error::Error>> {
+    match docker
+        .inspect_container(&id, None::<InspectContainerOptions>)
+        .await
+    {
+        Ok(info) => {
+            if let Some(state) = info.state {
+                match state.status {
+                    Some(bollard::secret::ContainerStateStatusEnum::RUNNING) => {
+                        return Ok("running".to_string());
+                    }
+                    Some(bollard::secret::ContainerStateStatusEnum::EXITED) => {
+                        return Ok("exited".to_string());
+                    }
+                    _ => return Ok("unknown".to_string()),
+                }
+            } else {
+                return Ok("unknown".to_string());
+            }
+        }
+        Err(_e) => {
+            return Err("Unable to get container status".into());
+        }
     }
 }
 

@@ -61,5 +61,7 @@ pub trait DevBoxProvider {
 
     async fn stop_devbox(&self, id: String) -> Result<(), Box<dyn std::error::Error>>;
 
+    async fn get_status(&self, id: String) -> Result<String, Box<dyn std::error::Error>>;
+
     fn as_any(&self) -> &dyn std::any::Any;
 }

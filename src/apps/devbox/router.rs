@@ -189,7 +189,10 @@ pub async fn action_on_devbox(
 
 pub async fn list_all_devbox() -> impl IntoResponse {
     match list_containers().await {
-        Ok(result) => Ok(Json(result)),
+        Ok(result) => {
+            // let res = serde_json::to_string(&result);
+            Ok(Json(result))
+        }
         Err(_) => Err((StatusCode::INTERNAL_SERVER_ERROR, "Failed to list devbox")),
     }
 }

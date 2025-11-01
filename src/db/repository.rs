@@ -30,21 +30,29 @@ pub async fn insert_task(
     Ok(())
 }
 
-pub async fn list_containers() -> Result<String, Box<dyn std::error::Error>> {
+pub async fn list_containers()
+-> Result<Vec<(i32, String, String, String, String)>, Box<dyn std::error::Error>> {
     let conn = DefaultDB::get_db()?;
 
-    let mut stmt = conn.prepare("SELECT id, name, provider, status FROM containers")?;
+    let mut stmt =
+        conn.prepare("SELECT id, name, provider, status, resource_id FROM containers")?;
     let container_iter = stmt.query_map([], |row| {
         let container_id: i32 = row.get(0)?;
         let name: String = row.get(1)?;
         let provider: String = row.get(2)?;
         let status: String = row.get(3)?;
-        Ok((container_id, name, provider, status))
+        let resource_id: String = row.get(4)?;
+        Ok((container_id, name, provider, status, resource_id))
     })?;
 
-    let containers: Result<Vec<(i32, String, String, String)>, _> = container_iter.collect();
-    let json = serde_json::to_string(&containers?)?;
-    Ok(json)
+    let containers: Result<Vec<(i32, String, String, String, String)>, _> =
+        container_iter.collect();
+    match containers {
+        Ok(c) => Ok(c),
+        Err(_) => Err("Unable to fetch container list from db".into()),
+    }
+    // let json = serde_json::to_string(&containers?)?;
+    // Ok(json)
 }
 
 pub async fn insert_container(

@@ -8,7 +8,10 @@ use axum::{
 use http::{HeaderName, HeaderValue, Method};
 use std::sync::Arc;
 use tokio::sync::RwLock;
+use tokio::time::{Duration, sleep};
+use tracing::info;
 use utils::AppState;
+use utils::monitor::container_status_update;
 mod apps;
 mod db;
 mod logs;
@@ -21,6 +24,23 @@ mod utils;
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::fmt::init();
     let app_state: Arc<RwLock<Option<AppState>>> = Arc::new(RwLock::new(None));
+
+    let bg_state = Arc::clone(&app_state);
+
+    tokio::spawn(async move {
+        loop {
+            {
+                let read_guard = bg_state.read().await;
+                if let Some(ref app_state) = *read_guard {
+                    let _ = container_status_update(app_state).await;
+                } else {
+                    info!("State not initialized.");
+                }
+            }
+            sleep(Duration::from_secs(5)).await;
+        }
+    });
+
     let cors = tower_http::cors::CorsLayer::new()
         .allow_origin([HeaderValue::from_static("http://127.0.0.1:3000")])
         .allow_methods([Method::GET, Method::POST])

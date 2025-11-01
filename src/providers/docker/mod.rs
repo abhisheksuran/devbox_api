@@ -10,7 +10,7 @@ use crate::{logs::ASYNC_TASK_ID, utils::artifactory::Artifactory};
 
 pub use action::handle_exec_stream;
 use bollard::Docker;
-use container::{create, exec, remove, start, stop};
+use container::{create, exec, remove, start, status, stop};
 // use image::create_image;
 use serde_json::json;
 use std::sync::Arc;
@@ -131,5 +131,10 @@ impl DevBoxProvider for DockerProvider {
         }
         update_container_status(&id, "stopped").await?;
         Ok(())
+    }
+
+    async fn get_status(&self, id: String) -> Result<String, Box<dyn std::error::Error>> {
+        let docker = self.connection.clone();
+        status(docker, id).await
     }
 }

@@ -133,4 +133,7 @@ impl DevBoxProvider for AzureProvider {
     async fn stop_devbox(&self, id: String) -> Result<(), Box<dyn std::error::Error>> {
         todo!("To be implemented");
     }
+    async fn get_status(&self, id: String) -> Result<String, Box<dyn std::error::Error>> {
+        todo!("To be implemented")
+    }
 }
