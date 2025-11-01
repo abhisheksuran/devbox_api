@@ -1,10 +1,6 @@
 use apps::config::config_routes;
-use apps::data::data_routes; //,new_devbox, websocket_exec_handler};
 use apps::devbox::devbox_routes;
-use axum::{
-    Router,
-    routing::{get, post},
-};
+use axum::{Router, routing::get};
 use http::{HeaderName, HeaderValue, Method};
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -48,7 +44,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let app = Router::new()
         .with_state(app_state.clone())
-        .nest("/container", data_routes(app_state.clone()))
         .nest("/devbox", devbox_routes(app_state.clone()))
         .nest("/config", config_routes(app_state.clone()))
         // OpenAPI JSON

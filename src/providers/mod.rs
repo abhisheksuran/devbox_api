@@ -1,3 +1,5 @@
+#![allow(clippy::to_string_trait_impl)]
+
 pub mod aws;
 pub mod azure;
 pub mod docker;
@@ -33,19 +35,6 @@ impl ToString for ProviderEnum {
         }
     }
 }
-
-// impl TryFrom<String> for ProviderEnum {
-//     type Error = String;
-
-//     fn try_from(value: String) -> Result<Self, Self::Error> {
-//         match value.as_str() {
-//             "aws" => Ok(ProviderEnum::Aws),
-//             "azure" => Ok(ProviderEnum::Azure),
-//             "docker" => Ok(ProviderEnum::Docker),
-//             _ => Err(format!("Unknown provider: {}", value)),
-//         }
-//     }
-// }
 
 #[async_trait::async_trait]
 pub trait DevBoxProvider {

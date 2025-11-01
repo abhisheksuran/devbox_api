@@ -24,29 +24,6 @@ pub async fn handle_exec_stream(stream: WebSocket, docker: Arc<Docker>, id: Stri
         .unwrap()
         .id;
 
-    // if let bollard::exec::StartExecResults::Attached {
-    //     mut output,
-    //     mut input,
-    // } = docker.start_exec(&exec_id, None).await.unwrap()
-    // {
-    //     // Forward WebSocket input to Docker exec stdin
-    //     tokio::spawn(async move {
-    //         while let Some(Ok(msg)) = receiver.next().await {
-    //             if let Message::Text(text) = msg {
-    //                 info!(" Websocket input to Docker exec {:?}", text);
-    //                 input.write_all(text.as_bytes()).await.ok();
-    //             }
-    //         }
-    //     });
-
-    // Forward Docker exec stdout to WebSocket
-    // while let Some(Ok(msg)) = output.next().await {
-    //     let bytes = msg.into_bytes();
-    //     if sender.send(Message::Binary(bytes)).await.is_err() {
-    //         break;
-    //     }
-    // }
-
     if let bollard::exec::StartExecResults::Attached {
         mut output,
         mut input,

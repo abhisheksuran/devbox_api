@@ -22,7 +22,7 @@ use tracing::error;
 
 use uuid::Uuid;
 
-const LOG_DIR: &str = "./data/task_logs";
+// const LOG_DIR: &str = "/home/kk/log/devbox";
 
 // POST /devbox/create?provider=docker|azure|aws
 #[utoipa::path(
@@ -48,10 +48,16 @@ pub async fn new_devbox(
         return validation_response;
     }
 
+    let LOG_DIR = AppState::get_state(state.clone())
+        .await
+        .ok()
+        .unwrap()
+        .log_storage_path;
+
     let provider = params.provider;
     let path_param = params.path;
     let path = path_param.clone();
-    let state = state.clone();
+    // let state = state.clone();
 
     let is_state_initialized = validate_state(state.clone(), provider.clone()).await;
     if !is_state_initialized.status().is_success() {
@@ -65,8 +71,8 @@ pub async fn new_devbox(
 
     let task_id = Uuid::new_v4().to_string();
 
-    let _ = tokio::fs::create_dir_all(LOG_DIR).await;
-    let log_path = format!("{}/{}.log", LOG_DIR, task_id);
+    let _ = tokio::fs::create_dir_all(&LOG_DIR).await;
+    let log_path = format!("{}/{}.log", &LOG_DIR, task_id);
 
     let (log_tx, mut log_rx) = tokio::sync::mpsc::channel::<String>(512);
     TASK_LOGGERS.insert(task_id.clone(), log_tx.clone());
@@ -91,18 +97,6 @@ pub async fn new_devbox(
     });
 
     let taskid = task_id.clone();
-    // Spawn blocking task with task_id set
-    // tokio::task::spawn_blocking(move || {
-    //     set_blocking_task_id(taskid.clone());
-    //     let handle = tokio::runtime::Handle::current();
-    //     handle.block_on(async move {
-    //         task_log!("Starting devbox creation for provider: {:?}", provider);
-    //         if let Err(e) = create_devbox(provider, state, devcontainer, path_param).await {
-    //             task_log!("Failed to create devbox: {}", e);
-    //         }
-    //         // TASK_LOGGERS.remove(&taskid);
-    //     });
-    // });
 
     tokio::spawn({
         let state = state.clone(); // clone Arc, not AppState
@@ -123,15 +117,8 @@ pub async fn new_devbox(
             if let Err(e) = create_devbox(provider, app_state, devcontainer, path_param).await {
                 task_log!("Failed to create devbox: {}", e);
             }
-
-            // TASK_LOGGERS.remove(&taskid);
         })
     });
-
-    // Optional: log from async context
-    // ASYNC_TASK_ID.scope(task_id.clone(), async {
-    //     task_log!("Devbox task {} launched", task_id);
-    // });
 
     let _ = insert_task(&task_id, &provider.to_string(), "initiated", path).await;
     (Json(json!({ "task_id": task_id }))).into_response()
@@ -194,5 +181,30 @@ pub async fn list_all_devbox() -> impl IntoResponse {
             Ok(Json(result))
         }
         Err(_) => Err((StatusCode::INTERNAL_SERVER_ERROR, "Failed to list devbox")),
+    }
+}
+
+pub async fn get_task_logs(
+    Path(id): Path<String>,
+    State(state): State<Arc<RwLock<Option<AppState>>>>,
+) -> impl IntoResponse {
+    let guard = state.read().await;
+
+    let state = match &*guard {
+        Some(state) => state.clone(),
+        None => {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "AppState not initialized",
+            ));
+        }
+    };
+
+    match crate::db::get_task_id(id).await {
+        Ok(task_id) => Ok(Json(
+            std::fs::read_to_string(format!("{}/{}.log", state.log_storage_path, task_id))
+                .unwrap_or("Failed to fetch logs".to_string()),
+        )),
+        Err(_) => Err((StatusCode::INTERNAL_SERVER_ERROR, "Failed to fetch logs")),
     }
 }

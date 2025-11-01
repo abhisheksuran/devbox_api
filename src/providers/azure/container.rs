@@ -2,7 +2,6 @@ use crate::task_log;
 use reqwest::Client;
 use serde::Serialize;
 use tokio::time::{Duration, sleep};
-use tracing::{error, info};
 
 #[derive(Serialize)]
 pub struct ContainerGroup {
@@ -77,14 +76,6 @@ pub async fn create(
     resource_group: &str,
     token: &str,
 ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
-    // // Authenticate
-    // let credentials = AzureCliCredential::new(None)?;
-    // let token = credentials
-    //     .get_token(&["https://management.azure.com/.default"], None)
-    //     .await?;
-
-    // let token_str = token.token.secret();
-
     // Send request to Azure
     let client = Client::new();
     let response = client
@@ -94,7 +85,6 @@ pub async fn create(
         .send()
         .await?;
 
-    // println!("Response: {:?}", response.text().await?);
     // Parse the JSON body
     let body: serde_json::Value = response.json().await?;
 

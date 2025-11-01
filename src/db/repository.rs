@@ -15,6 +15,16 @@ pub async fn get_provider_and_id(
     Ok(result)
 }
 
+pub async fn get_task_id(id: String) -> Result<String, Box<dyn std::error::Error>> {
+    let conn = DefaultDB::get_db().unwrap();
+    let mut stmt = conn.prepare("SELECT task_id FROM containers WHERE id = ?")?;
+    let task_id = stmt.query_row(params![id], |row| {
+        let task_id: String = row.get(0)?;
+        Ok(task_id)
+    })?;
+    Ok(task_id)
+}
+
 pub async fn insert_task(
     id: &str,
     provider: &str,
@@ -31,22 +41,22 @@ pub async fn insert_task(
 }
 
 pub async fn list_containers()
--> Result<Vec<(i32, String, String, String, String)>, Box<dyn std::error::Error>> {
+-> Result<Vec<(i32, String, String, String, String, String)>, Box<dyn std::error::Error>> {
     let conn = DefaultDB::get_db()?;
-
+    type ContainerRow = Vec<(i32, String, String, String, String, String)>;
     let mut stmt =
-        conn.prepare("SELECT id, name, provider, status, resource_id FROM containers")?;
+        conn.prepare("SELECT id, name, provider, status, resource_id, task_id FROM containers")?;
     let container_iter = stmt.query_map([], |row| {
         let container_id: i32 = row.get(0)?;
         let name: String = row.get(1)?;
         let provider: String = row.get(2)?;
         let status: String = row.get(3)?;
         let resource_id: String = row.get(4)?;
-        Ok((container_id, name, provider, status, resource_id))
+        let task_id: String = row.get(5)?;
+        Ok((container_id, name, provider, status, resource_id, task_id))
     })?;
 
-    let containers: Result<Vec<(i32, String, String, String, String)>, _> =
-        container_iter.collect();
+    let containers: Result<ContainerRow, _> = container_iter.collect();
     match containers {
         Ok(c) => Ok(c),
         Err(_) => Err("Unable to fetch container list from db".into()),

@@ -1,6 +1,5 @@
 mod action;
 mod container;
-mod image;
 
 use crate::db::{delete_container, insert_container, update_container_status};
 use crate::models::DevBox;
@@ -62,14 +61,6 @@ impl DevBoxProvider for DockerProvider {
         let docker_clone = docker.clone();
         let id_clone = id.clone();
 
-        // let task_id = if get_blocking_task_id().is_some() {
-        //     get_blocking_task_id().unwrap()
-        // } else {
-        //     String::new()
-        // };
-
-        // task_log!("Current blocking task ID: {}", task_id);
-
         let task_id = ASYNC_TASK_ID.with(|id| id.clone());
         let t_id = task_id.clone();
         tokio::spawn(ASYNC_TASK_ID.scope(task_id.clone(), async move {
@@ -129,7 +120,7 @@ impl DevBoxProvider for DockerProvider {
             Ok(()) => (),
             _ => return Err("Fail to stop container".into()),
         }
-        update_container_status(&id, "stopped").await?;
+        update_container_status(&id, "exited").await?;
         Ok(())
     }
 

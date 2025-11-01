@@ -1,4 +1,4 @@
-use crate::models::{Build, DevBox, DevcontainerFeature, FeatureNode};
+use crate::models::{DevBox, DevcontainerFeature, FeatureNode};
 use crate::task_log;
 use bollard::Docker;
 use http_body_util::Full;
@@ -6,7 +6,6 @@ use std::collections::HashMap;
 use std::io::Write;
 use std::sync::Arc;
 use tokio_stream::StreamExt;
-use tracing::info;
 
 async fn get_docker_file(
     devcontainer: &DevBox,
@@ -98,7 +97,7 @@ fn process_feature(
         feature.id.rsplit('/').next().unwrap_or("")
     ));
 
-    for (option_name, _option_data) in &option_json {
+    for option_name in option_json.keys() {
         run_commands.push(format!("ENV {}=''", option_name.to_uppercase()));
     }
 
@@ -127,7 +126,7 @@ fn load_feature(
     feature_map.insert(name.clone(), params.clone());
     feature_order.push(FeatureNode {
         feature: feature_map,
-        required: required,
+        required,
     });
 
     // Recursively load dependencies
@@ -188,7 +187,7 @@ fn feature_to_dockerfile(
     task_log!("Resolved Feature Install Order:");
     let reversed: Vec<_> = feature_order.iter().rev().cloned().collect();
     for node in &reversed {
-        for (id, _config) in &node.feature {
+        for id in node.feature.keys() {
             let ky = id.rsplit('/').next().unwrap_or("");
             if let Some(cmds) = features_cmd_map.get(ky) {
                 docker_file_features.extend_from_slice(cmds);

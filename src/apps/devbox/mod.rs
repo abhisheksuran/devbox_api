@@ -8,7 +8,7 @@ pub use router::{
     __path_new_devbox, action_on_devbox, list_all_devbox, new_devbox, websocket_exec_handler,
 };
 
-use crate::utils::AppState;
+use crate::{apps::devbox::router::get_task_logs, utils::AppState};
 use axum::{
     Router,
     routing::{get, post},
@@ -18,6 +18,7 @@ use tokio::sync::RwLock;
 pub fn devbox_routes(state: std::sync::Arc<RwLock<Option<AppState>>>) -> Router {
     Router::new()
         .route("/create", post(new_devbox))
+        .route("/logs/{id}", get(get_task_logs))
         .route("/{id}", get(action_on_devbox))
         .route("/list", get(list_all_devbox))
         .route("/ws/docker/{id}", get(websocket_exec_handler))

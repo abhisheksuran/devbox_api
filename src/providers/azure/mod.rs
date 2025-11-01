@@ -56,9 +56,7 @@ impl DevBoxProvider for AzureProvider {
         let devcontainer_cp = devcontainer.clone();
 
         let docker = Arc::new(Docker::connect_with_local_defaults().unwrap());
-        devcontainer
-            .create_image(path, docker.clone().into())
-            .await?;
+        devcontainer.create_image(path, docker.clone()).await?;
 
         let image = self
             .artifactory
@@ -72,7 +70,7 @@ impl DevBoxProvider for AzureProvider {
                 containers: vec![Container {
                     name: devcontainer.name,
                     properties: ContainerProperties {
-                        image: image,
+                        image,
                         resources: Resources {
                             requests: ResourceRequests {
                                 cpu: devcontainer.cpu_limit.unwrap_or(1.0),
@@ -98,7 +96,7 @@ impl DevBoxProvider for AzureProvider {
             },
         };
 
-        self.get_token();
+        let _ = self.get_token().await;
         task_log!("Creating Azure Container Instance");
         let id = create(
             &devcontainer_cp.name,

@@ -4,7 +4,7 @@ use crate::utils::global_state::AppState;
 
 pub async fn container_status_update(state: &AppState) -> Result<(), Box<dyn std::error::Error>> {
     let containers = list_containers().await?;
-    for (_, _, provider, _, resource_id) in containers {
+    for (_, _, provider, _, resource_id, _) in containers {
         let container_status = match provider.to_lowercase().as_str() {
             "docker" => state
                 .docker

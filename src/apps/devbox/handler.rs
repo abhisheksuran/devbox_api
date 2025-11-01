@@ -1,9 +1,9 @@
 use crate::apps::devbox::ActionEnum;
-use crate::db::{DefaultDB, get_provider_and_id};
+use crate::db::get_provider_and_id;
 use crate::models::DevBox;
 use crate::providers::ProviderEnum;
 use crate::utils::AppState;
-use tracing::{error, info};
+// use tracing::{error, info};
 
 pub async fn create_devbox(
     provider: ProviderEnum,

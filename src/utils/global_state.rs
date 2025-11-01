@@ -3,6 +3,7 @@ use crate::providers::{
 };
 use bollard::Docker;
 use std::sync::Arc;
+use tokio::sync::RwLock;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -26,5 +27,19 @@ impl AppState {
 
     pub fn get_docker_connection(&self) -> Arc<Docker> {
         self.docker.get_connection()
+    }
+
+    pub async fn get_state(
+        state: Arc<RwLock<Option<AppState>>>,
+    ) -> Result<AppState, Box<dyn std::error::Error>> {
+        let guard = state.read().await;
+
+        let state_clone = match &*guard {
+            Some(state) => Ok(state.clone()),
+            None => {
+                return Err("AppState not initialized".into());
+            }
+        };
+        state_clone
     }
 }

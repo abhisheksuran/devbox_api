@@ -30,7 +30,7 @@ pub async fn update_state(State(state): State<Arc<RwLock<Option<AppState>>>>) ->
                 ),
                 azure: None,
                 aws: None,
-                log_storage_path: String::from("/var/log/devbox/"),
+                log_storage_path: String::from("/home/kk/log/devbox"),
             };
             *guard = Some(new_state.clone());
 

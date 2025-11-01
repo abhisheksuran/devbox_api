@@ -1,5 +1,5 @@
 mod container;
-pub use container::{Build, Container, ContainerConfig, DevBox};
+pub use container::{Build, DevBox};
 
 mod features;
-pub use features::{DevcontainerFeature, FeatureNode, FeatureOption};
+pub use features::{DevcontainerFeature, FeatureNode};

@@ -1,5 +1,3 @@
-use tracing::{error, info};
-
 use crate::task_log;
 use bollard::Docker;
 use bollard::auth::DockerCredentials;

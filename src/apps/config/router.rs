@@ -6,7 +6,7 @@ use crate::utils::AppState;
 use crate::utils::artifactory::Artifactory;
 use axum::Json;
 use axum::extract::State;
-use axum::response::{IntoResponse, Response};
+use axum::response::IntoResponse;
 use bollard::Docker;
 use std::sync::Arc;
 use tokio::sync::RwLock;
