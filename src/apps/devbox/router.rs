@@ -1,4 +1,6 @@
-use crate::apps::devbox::{ActionEnum, ActionQuery, ContainerListResponse, ProviderQuery, action_devbox, create_devbox, validate_state
+use crate::apps::devbox::{
+    ActionEnum, ActionQuery, ContainerListResponse, ProviderQuery, action_devbox, create_devbox,
+    validate_state,
 };
 use crate::db::{insert_task, list_containers};
 use crate::logs::{ASYNC_TASK_ID, TASK_LOGGERS};
@@ -27,46 +29,10 @@ use uuid::Uuid;
 #[utoipa::path(
     post,
     path = "/devbox/create",
-    params(ProviderQuery),
+    params(("provider" = crate::providers::ProviderEnum, Query, description = "Devbox provider"), ("path" = String, Query, description = "Path to .devbox directory like home/john/myapp/.devbox")),
     request_body(
         content = Option<DevBox>,
-        example = json!({
-  "build": {"context": "/home/john/myapp", "dockerfile": "dokerfile"},
-  "cpu_limit": 0.1,
-  "environment": {
-    "additionalProp1": "string",
-    "additionalProp2": "string",
-    "additionalProp3": "string"
-  },
-  "features": {
-    "additionalProp1": {
-      "additionalProp1": "string",
-      "additionalProp2": "string",
- 
-    },
-    "additionalProp2": {
-      "additionalProp1": "string",
-      "additionalProp2": "string",
-      "additionalProp3": "string"
-    }
-  },
-  "image": "string",
-  "memory_limit": 0.1,
-  "mounts": [
-    "string"
-  ],
-  "name": "string",
-  "ports": [
-    0
-  ],
-  "post_start_script": [
-    "string"
-  ],
-  "remote_user": "string",
-  "start_on_create": true,
-  "target_platform": "string"
-}),
-        ,description = "Optional devbox body",
+        description = "Optional devbox body",
     ),
     // request_body = Option<DevBox>,
     description = "Create new container via available providers docker/azure/aws. You container post body is optional, if not provided it will read body from the path provided",
@@ -187,8 +153,6 @@ pub async fn websocket_exec_handler(
     ws.on_upgrade(move |socket| handle_exec_stream(socket, docker, id))
 }
 
-
-
 #[utoipa::path(
     get,
     path = "/devbox/{id}",
@@ -227,7 +191,6 @@ pub async fn action_on_devbox(
     }
 }
 
-
 #[utoipa::path(
     get,
     path = "/devbox/list",
@@ -241,23 +204,21 @@ pub async fn action_on_devbox(
 pub async fn list_all_devbox() -> impl IntoResponse {
     match list_containers().await {
         Ok(result) => {
-
-        let mapped: Vec<ContainerListResponse> = result
-        .into_iter()
-        .map(|(id, name, provider, status, _, _)| ContainerListResponse {
-            id,
-            name,
-            provider,
-            status,
-        })
-        .collect();
+            let mapped: Vec<ContainerListResponse> = result
+                .into_iter()
+                .map(|(id, name, provider, status, _, _)| ContainerListResponse {
+                    id,
+                    name,
+                    provider,
+                    status,
+                })
+                .collect();
             // let res = serde_json::to_string(&result);
             Ok(Json(mapped))
         }
         Err(_) => Err((StatusCode::INTERNAL_SERVER_ERROR, "Failed to list devbox")),
     }
 }
-
 
 #[utoipa::path(
     get,

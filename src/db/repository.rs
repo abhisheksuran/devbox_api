@@ -31,6 +31,8 @@ pub async fn insert_task(
     status: &str,
     request: String,
 ) -> Result<(), Box<dyn std::error::Error>> {
+    let request = std::fs::read_to_string(format!("{}/devbox.json", request)).unwrap_or(request);
+
     let conn = DefaultDB::get_db()?;
     conn.execute(
         "INSERT INTO tasks (id, provider, status, request)
