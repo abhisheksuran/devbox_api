@@ -11,8 +11,6 @@ use crate::providers::docker::DockerProvider;
 use crate::utils::AppState;
 use axum::extract::State;
 
-
-
 #[utoipa::path(
     get,
     path = "/config/edit",
@@ -106,7 +104,7 @@ pub async fn update_provider(
                 ),
                 azure: azure_provider,
                 aws: aws_provider,
-                log_storage_path: String::from("/var/log/devbox/"),
+                log_storage_path: String::from("/home/kk/log/devbox"),
             };
             *guard = Some(new_state.clone());
             let _ = insert_provider("docker", "").await;
