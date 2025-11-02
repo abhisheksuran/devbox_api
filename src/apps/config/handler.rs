@@ -11,6 +11,17 @@ use crate::providers::docker::DockerProvider;
 use crate::utils::AppState;
 use axum::extract::State;
 
+
+
+#[utoipa::path(
+    get,
+    path = "/config/edit",
+    responses(
+        (status = 200, description = "Task accepted", body = String),
+        (status = 400, description = "Bad Request"),
+        (status = 500, description = "Internal server error")
+    )
+)]
 pub async fn update_state(State(state): State<Arc<RwLock<Option<AppState>>>>) -> Response {
     let mut guard = state.write().await;
 

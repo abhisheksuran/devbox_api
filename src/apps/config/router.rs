@@ -11,6 +11,17 @@ use bollard::Docker;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
+#[utoipa::path(
+    post,
+    path = "/config/provider/azure/edit",
+    description = "Configure Azure Provider",
+    request_body = AzureProvider,
+    responses(
+        (status = 200, description = "Task accepted", body = String),
+        (status = 400, description = "Bad Request"),
+        (status = 500, description = "Internal server error")
+    )
+)]
 pub async fn update_azure_provider(
     State(state): State<Arc<RwLock<Option<AppState>>>>,
     Json(azure_provider): Json<AzureProvider>,
@@ -18,6 +29,17 @@ pub async fn update_azure_provider(
     update_provider(state, azure_provider).await
 }
 
+#[utoipa::path(
+    post,
+    path = "/config/provider/aws/edit",
+    description = "Configure AWS Provider",
+    request_body = AwsProvider,
+    responses(
+        (status = 200, description = "Task accepted", body = String),
+        (status = 400, description = "Bad Request"),
+        (status = 500, description = "Internal server error")
+    )
+)]
 pub async fn update_aws_provider(
     State(state): State<Arc<RwLock<Option<AppState>>>>,
     Json(aws_provider): Json<AwsProvider>,
@@ -25,6 +47,17 @@ pub async fn update_aws_provider(
     update_provider(state, aws_provider).await
 }
 
+#[utoipa::path(
+    post,
+    path = "/config/provider/docker/edit",
+    description = "Configure Docker Provider",
+    request_body = Artifactory,
+    responses(
+        (status = 200, description = "Task accepted", body = String),
+        (status = 400, description = "Bad Request"),
+        (status = 500, description = "Internal server error")
+    )
+)]
 pub async fn update_docker_provider(
     State(state): State<Arc<RwLock<Option<AppState>>>>,
     Json(docker_artifactory): Json<Artifactory>,

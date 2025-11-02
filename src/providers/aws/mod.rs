@@ -2,7 +2,7 @@ use crate::models::DevBox;
 use crate::providers::DevBoxProvider;
 mod container;
 
-#[derive(Clone, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, serde::Deserialize, serde::Serialize, utoipa::ToSchema)]
 pub struct AwsProvider {
     access_key: String,
     secret_key: String,

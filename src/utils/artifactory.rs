@@ -5,7 +5,7 @@ use bollard::query_parameters::PushImageOptions;
 use bollard::query_parameters::TagImageOptions;
 use futures_util::stream::StreamExt;
 
-#[derive(Clone, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, serde::Deserialize, serde::Serialize, utoipa::ToSchema)]
 pub struct Artifactory {
     pub server: String,
     pub repository_name: String,

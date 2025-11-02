@@ -16,7 +16,7 @@ use azure_core::credentials::AccessToken;
 use azure_core::credentials::TokenCredential;
 use azure_identity::AzureCliCredential;
 
-#[derive(Clone, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, serde::Deserialize, serde::Serialize, utoipa::ToSchema)]
 pub struct AzureProvider {
     tanent: String,
     subscription: String,

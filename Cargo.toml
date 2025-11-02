@@ -33,8 +33,6 @@ dashmap = "6.1.0"
 azure_core = "0.29.1"
 azure_identity = "0.29.0"
 reqwest = { version = "0.12.24" , features = ["json", "rustls-tls"] }
-aws-config = "1.8.8"
-aws-sdk-ecs = "1.100.0"
 
 [workspace.lints.clippy]
 all = "deny"

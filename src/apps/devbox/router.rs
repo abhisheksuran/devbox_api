@@ -1,5 +1,4 @@
-use crate::apps::devbox::{
-    ActionQuery, ProviderQuery, action_devbox, create_devbox, validate_state,
+use crate::apps::devbox::{ActionEnum, ActionQuery, ContainerListResponse, ProviderQuery, action_devbox, create_devbox, validate_state
 };
 use crate::db::{insert_task, list_containers};
 use crate::logs::{ASYNC_TASK_ID, TASK_LOGGERS};
@@ -29,7 +28,48 @@ use uuid::Uuid;
     post,
     path = "/devbox/create",
     params(ProviderQuery),
-    request_body = DevBox,
+    request_body(
+        content = Option<DevBox>,
+        example = json!({
+  "build": {"context": "/home/john/myapp", "dockerfile": "dokerfile"},
+  "cpu_limit": 0.1,
+  "environment": {
+    "additionalProp1": "string",
+    "additionalProp2": "string",
+    "additionalProp3": "string"
+  },
+  "features": {
+    "additionalProp1": {
+      "additionalProp1": "string",
+      "additionalProp2": "string",
+ 
+    },
+    "additionalProp2": {
+      "additionalProp1": "string",
+      "additionalProp2": "string",
+      "additionalProp3": "string"
+    }
+  },
+  "image": "string",
+  "memory_limit": 0.1,
+  "mounts": [
+    "string"
+  ],
+  "name": "string",
+  "ports": [
+    0
+  ],
+  "post_start_script": [
+    "string"
+  ],
+  "remote_user": "string",
+  "start_on_create": true,
+  "target_platform": "string"
+}),
+        ,description = "Optional devbox body",
+    ),
+    // request_body = Option<DevBox>,
+    description = "Create new container via available providers docker/azure/aws. You container post body is optional, if not provided it will read body from the path provided",
     responses(
         (status = 200, description = "Task accepted", body = String),
         (status = 400, description = "Bad Request"),
@@ -147,6 +187,19 @@ pub async fn websocket_exec_handler(
     ws.on_upgrade(move |socket| handle_exec_stream(socket, docker, id))
 }
 
+
+
+#[utoipa::path(
+    get,
+    path = "/devbox/{id}",
+    description = "Start, Stop or Delete a container by passing devbox container id",
+    params( ("id" = i32, Path, description = "Numeric ID of devbox"), ("action" = ActionEnum, Query, description = "Action to take")),
+    responses(
+        (status = 200, description = "Task accepted", body = String),
+        (status = 400, description = "Bad Request"),
+        (status = 500, description = "Internal server error")
+    )
+)]
 pub async fn action_on_devbox(
     Path(id): Path<String>,
     Query(action): Query<ActionQuery>,
@@ -174,16 +227,51 @@ pub async fn action_on_devbox(
     }
 }
 
+
+#[utoipa::path(
+    get,
+    path = "/devbox/list",
+    description = "List all devbox containers",
+    responses(
+        (status = 200, description = "Task accepted", body = Vec<ContainerListResponse>),
+        (status = 400, description = "Bad Request"),
+        (status = 500, description = "Internal server error")
+    )
+)]
 pub async fn list_all_devbox() -> impl IntoResponse {
     match list_containers().await {
         Ok(result) => {
+
+        let mapped: Vec<ContainerListResponse> = result
+        .into_iter()
+        .map(|(id, name, provider, status, _, _)| ContainerListResponse {
+            id,
+            name,
+            provider,
+            status,
+        })
+        .collect();
             // let res = serde_json::to_string(&result);
-            Ok(Json(result))
+            Ok(Json(mapped))
         }
         Err(_) => Err((StatusCode::INTERNAL_SERVER_ERROR, "Failed to list devbox")),
     }
 }
 
+
+#[utoipa::path(
+    get,
+    path = "/devbox/logs/{id}",
+     params(
+        ("id" = i32, Path, description = "Numeric ID of the devbox")
+    ),
+    description = "Get container logs via devbox id",
+    responses(
+        (status = 200, description = "Task accepted", body = String),
+        (status = 400, description = "Bad Request"),
+        (status = 500, description = "Internal server error")
+    )
+)]
 pub async fn get_task_logs(
     Path(id): Path<String>,
     State(state): State<Arc<RwLock<Option<AppState>>>>,

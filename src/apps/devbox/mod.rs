@@ -5,13 +5,14 @@ mod router;
 pub use handler::*;
 pub use model::*;
 pub use router::{
-    __path_new_devbox, action_on_devbox, list_all_devbox, new_devbox, websocket_exec_handler,
+    __path_action_on_devbox, __path_get_task_logs, __path_list_all_devbox, __path_new_devbox,
+    action_on_devbox, get_task_logs, list_all_devbox, new_devbox, websocket_exec_handler,
 };
 
-use crate::{apps::devbox::router::get_task_logs, utils::AppState};
+use crate::utils::AppState;
 use axum::{
-    Router,
     routing::{get, post},
+    Router,
 };
 use tokio::sync::RwLock;
 

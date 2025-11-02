@@ -15,7 +15,15 @@ use validator::Validate;
 use validator::ValidationError;
 use validator_derive::Validate;
 
-#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(serde::Serialize, ToSchema)]
+pub struct ContainerListResponse {
+    pub id: i32,
+    pub name: String,
+    pub provider: String,
+    pub status: String,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, PartialEq, Eq, Hash, ToSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum ActionEnum {
     Start,
@@ -23,7 +31,7 @@ pub enum ActionEnum {
     Delete,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Debug)]
+#[derive(serde::Serialize, serde::Deserialize, Debug, IntoParams, ToSchema)]
 pub struct ActionQuery {
     pub action: ActionEnum,
 }
