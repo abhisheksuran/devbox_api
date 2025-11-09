@@ -2,8 +2,10 @@ use crate::models::{DevBox, DevcontainerFeature, FeatureNode};
 use crate::task_log;
 use bollard::Docker;
 use http_body_util::Full;
+use parse_dockerfile::{Instruction, parse};
 use std::collections::HashMap;
 use std::io::Write;
+use std::path::Path;
 use std::sync::Arc;
 use tokio_stream::StreamExt;
 
@@ -11,7 +13,7 @@ async fn get_docker_file(
     devcontainer: &DevBox,
     sorted_features: Option<&Vec<String>>,
     dev_path: &str,
-) -> Result<String, Box<dyn std::error::Error>> {
+) -> Result<(String, Option<Vec<String>>, Option<Vec<String>>), Box<dyn std::error::Error>> {
     let sorted_dev_features = sorted_features
         .as_ref()
         .map(|features| features.join("\n"))
@@ -19,7 +21,7 @@ async fn get_docker_file(
 
     let base_image = format!("FROM {}\n{}", &devcontainer.image, sorted_dev_features);
 
-    let dockerfile = match &devcontainer.build {
+    let (dockerfile, sourcefile, sourcedir) = match &devcontainer.build {
         Some(build) => {
             task_log!("Got build, reading Dockerfile from path...");
             task_log!("Features will be applied on top of dockerfile base image.");
@@ -47,15 +49,46 @@ async fn get_docker_file(
                 .join("\n");
 
             let dockerfile = format!("{}\n{}", base_image, org_dockerfile_without_first);
-            dockerfile
+
+            // Get all the copy directories
+            let dockerfile_parser = parse(&org_dockerfile).unwrap();
+            let mut sources_files: Vec<String> = Vec::new();
+            let mut sources_dirs: Vec<String> = Vec::new();
+
+            for inst in dockerfile_parser.instructions {
+                if let Instruction::Copy(copy) = inst {
+                    for src in &copy.src {
+                        if let parse_dockerfile::Source::Path(unescaped) = src {
+                            let src_str = unescaped.value.as_ref();
+                            let path = Path::new(src_str);
+
+                            let source_path = if path.is_absolute() {
+                                path.to_string_lossy().to_string()
+                            } else {
+                                let base_path = Path::new(&docker_file_path).parent().unwrap();
+                                format!("{}/{}", base_path.display(), src_str)
+                            };
+
+                            let resolved_path = Path::new(&source_path);
+                            if resolved_path.is_file() {
+                                sources_files.push(source_path);
+                            } else if resolved_path.is_dir() {
+                                sources_dirs.push(source_path);
+                            }
+                        }
+                    }
+                }
+            }
+
+            (dockerfile, Some(sources_files), Some(sources_dirs))
         }
         None => {
             task_log!("No build specified, generating Dockerfile from base image and features...");
-            base_image
+            (base_image, None, None)
         }
     };
 
-    Ok(dockerfile)
+    Ok((dockerfile, sourcefile, sourcedir))
 }
 
 fn process_feature(
@@ -209,7 +242,7 @@ pub async fn build_from_local(
     // let base_path = path.unwrap_or(&curr_path);
     let sorted_dev_features = feature_to_dockerfile(path, devcontainer).unwrap_or_default();
     task_log!("Final Dockerfile Commands: {:?}", sorted_dev_features);
-    let dockerfile =
+    let (dockerfile, sourcefile, sourcedir) =
         get_docker_file(devcontainer, Some(&sorted_dev_features), path.as_str()).await?;
 
     task_log!("{:?}", &dockerfile);
@@ -225,6 +258,26 @@ pub async fn build_from_local(
     let feature_dir = format!("{}/features", path);
     let feature_path = std::path::Path::new(&feature_dir);
     tar.append_dir_all("features", feature_path)?;
+
+    // Add source files
+    if let Some(files) = sourcefile {
+        for file_path in files {
+            let file_path_obj = Path::new(&file_path);
+            if file_path_obj.is_file() {
+                tar.append_path_with_name(file_path_obj, file_path_obj.file_name().unwrap())?;
+            }
+        }
+    }
+
+    // Add source directories
+    if let Some(dirs) = sourcedir {
+        for dir_path in dirs {
+            let dir_path_obj = Path::new(&dir_path);
+            if dir_path_obj.is_dir() {
+                tar.append_dir_all(dir_path_obj.file_name().unwrap(), dir_path_obj)?;
+            }
+        }
+    }
 
     let uncompressed = tar.into_inner().unwrap();
     let mut c = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::default());

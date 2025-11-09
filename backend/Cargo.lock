@@ -214,6 +214,7 @@ dependencies = [
  "http",
  "http-body-util",
  "once_cell",
+ "parse-dockerfile",
  "reqwest",
  "rusqlite",
  "serde",
@@ -1196,6 +1197,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
 
 [[package]]
+name = "lexopt"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9fa0e2a1fcbe2f6be6c42e342259976206b383122fc152e872795338b5a3f3a7"
+
+[[package]]
 name = "libc"
 version = "0.2.175"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1440,6 +1447,19 @@ dependencies = [
  "redox_syscall",
  "smallvec",
  "windows-targets 0.52.6",
+]
+
+[[package]]
+name = "parse-dockerfile"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c00b9fce6d36dd25a359c1d96874be502a5c95d564173c74b1365ac3598949f4"
+dependencies = [
+ "lexopt",
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "smallvec",
 ]
 
 [[package]]
@@ -2127,6 +2147,9 @@ name = "smallvec"
 version = "1.15.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "67b1b7a3b5fe4f1376887184045fcf45c69e92af734b7aaddc05fb777b6fbd03"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "socket2"
