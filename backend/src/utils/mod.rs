@@ -1,6 +1,7 @@
 pub mod artifactory;
 mod features;
 mod global_state;
+pub mod metadata;
 pub mod monitor;
 
 pub use features::build_from_local;

@@ -51,8 +51,10 @@ impl DevBoxProvider for DockerProvider {
             Some(dc) => dc,
             None => DevBox::new(path.clone()).await,
         };
-        devcontainer.create_image(path, docker.clone()).await?;
-        let id = create(docker.clone(), &devcontainer).await?;
+        devcontainer
+            .create_image(path.clone(), docker.clone())
+            .await?;
+        let id = create(docker.clone(), &devcontainer, &path).await?;
         if devcontainer.start_on_create.unwrap_or(false) {
             start(docker.clone(), id.clone()).await?;
         }

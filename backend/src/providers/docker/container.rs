@@ -1,9 +1,11 @@
 use crate::logs::TASK_LOGGERS;
 use crate::models::DevBox;
 use crate::task_log;
+use crate::utils::metadata::feature_runtime;
 use bollard::Docker;
 use bollard::container::LogOutput;
 use bollard::models::ContainerCreateBody;
+use bollard::models::HostConfig;
 use bollard::query_parameters::InspectContainerOptions;
 use bollard::query_parameters::LogsOptions;
 use futures::stream::StreamExt;
@@ -13,8 +15,20 @@ use tracing::info;
 pub async fn create(
     docker: Arc<Docker>,
     devcontainer: &DevBox,
+    path: &String,
 ) -> Result<String, Box<dyn std::error::Error>> {
     task_log!("Creating container...");
+
+    let runtimeops = feature_runtime(path, devcontainer)?;
+
+    let host_config = HostConfig {
+        init: Some(runtimeops.init),
+        privileged: Some(runtimeops.privileged),
+        cap_add: Some(runtimeops.cap_add),
+        security_opt: Some(runtimeops.security_opt),
+        ..Default::default()
+    };
+
     let image_config = ContainerCreateBody {
         image: Some(devcontainer.name.clone()),
         tty: Some(true),
@@ -22,6 +36,7 @@ pub async fn create(
         attach_stdout: Some(true),
         attach_stderr: Some(true),
         open_stdin: Some(true),
+        host_config: Some(host_config),
         ..Default::default()
     };
 
