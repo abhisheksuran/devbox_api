@@ -2,6 +2,7 @@ use apps::config::config_routes;
 use apps::devbox::devbox_routes;
 use axum::{Router, routing::get};
 use http::{HeaderName, HeaderValue, Method};
+use std::env;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tokio::time::{Duration, sleep};
@@ -37,8 +38,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     });
 
+    let allowed_origin =
+        env::var("ALLOWED_ORIGIN").unwrap_or_else(|_| "http://127.0.0.1:3000".to_string());
+
+    let origin_header =
+        HeaderValue::from_str(&allowed_origin).expect("Invalid ALLOWED_ORIGIN value");
+
     let cors = tower_http::cors::CorsLayer::new()
-        .allow_origin([HeaderValue::from_static("http://127.0.0.1:3000")])
+        .allow_origin([origin_header])
         .allow_methods([Method::GET, Method::POST])
         .allow_headers([HeaderName::from_static("content-type")]);
 
@@ -86,8 +93,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         )
         .layer(tower_http::trace::TraceLayer::new_for_http())
         .layer(cors);
-
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:8000")
+    let binding_address =
+        env::var("BINDING_ADDRESS").unwrap_or_else(|_| "127.0.0.1:8000".to_string());
+    info!("Starting server at {}", binding_address);
+    let listener = tokio::net::TcpListener::bind(binding_address)
         .await
         .unwrap();
     axum::serve(listener, app).await.unwrap();

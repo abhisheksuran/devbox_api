@@ -11,6 +11,22 @@ use crate::providers::docker::DockerProvider;
 use crate::utils::AppState;
 use axum::extract::State;
 
+use std::env;
+use std::fs;
+use std::path::PathBuf;
+
+const DEFAULT_LOG_DIR: &str = "/tmp/devbox";
+
+fn get_log_path() -> Result<String, Box<dyn std::error::Error>> {
+    // Get the system temp directory
+    let mut temp_path: PathBuf = env::temp_dir();
+    // Create a subdirectory inside temp
+    temp_path.push("devbox");
+    fs::create_dir_all(&temp_path)?;
+    let path_str = temp_path.to_str().ok_or(DEFAULT_LOG_DIR)?.to_string();
+    Ok(path_str)
+}
+
 #[utoipa::path(
     get,
     path = "/config/edit",
@@ -39,7 +55,7 @@ pub async fn update_state(State(state): State<Arc<RwLock<Option<AppState>>>>) ->
                 ),
                 azure: None,
                 aws: None,
-                log_storage_path: String::from("/home/kk/log/devbox"),
+                log_storage_path: get_log_path().unwrap_or(DEFAULT_LOG_DIR.to_string()),
             };
             *guard = Some(new_state.clone());
 
@@ -104,7 +120,7 @@ pub async fn update_provider(
                 ),
                 azure: azure_provider,
                 aws: aws_provider,
-                log_storage_path: String::from("/home/kk/log/devbox"),
+                log_storage_path: get_log_path().unwrap_or(DEFAULT_LOG_DIR.to_string()),
             };
             *guard = Some(new_state.clone());
             let _ = insert_provider("docker", "").await;
