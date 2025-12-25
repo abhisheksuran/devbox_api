@@ -51,29 +51,26 @@ pub async fn create(
     Ok(id)
 }
 
-pub async fn stop(docker: Arc<Docker>, id: String) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn stop(docker: Arc<Docker>, id: &str) -> Result<(), Box<dyn std::error::Error>> {
     task_log!("Stopping container...");
     docker
-        .stop_container(&id, None::<bollard::query_parameters::StopContainerOptions>)
+        .stop_container(id, None::<bollard::query_parameters::StopContainerOptions>)
         .await?;
     Ok(())
 }
 
-pub async fn start(docker: Arc<Docker>, id: String) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn start(docker: Arc<Docker>, id: &str) -> Result<(), Box<dyn std::error::Error>> {
     task_log!("Starting container...");
     docker
-        .start_container(
-            &id,
-            None::<bollard::query_parameters::StartContainerOptions>,
-        )
+        .start_container(id, None::<bollard::query_parameters::StartContainerOptions>)
         .await?;
     Ok(())
 }
 
-pub async fn remove(docker: Arc<Docker>, id: String) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn remove(docker: Arc<Docker>, id: &str) -> Result<(), Box<dyn std::error::Error>> {
     match docker
         .remove_container(
-            &id,
+            id,
             Some(
                 bollard::query_parameters::RemoveContainerOptionsBuilder::default()
                     .force(true)

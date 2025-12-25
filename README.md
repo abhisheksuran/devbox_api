@@ -1,4 +1,6 @@
-![alt text](image.png)
+<div style="text-align: center;">
+  <img src="image2.png" alt="alt text" width="300">
+</div>
 
 # Backend Service
 

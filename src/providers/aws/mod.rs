@@ -17,21 +17,21 @@ impl DevBoxProvider for AwsProvider {
 
     async fn create_devbox(
         &mut self,
-        devcontainer: Option<DevBox>,
+        devcontainer: DevBox,
         path: String,
-    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    ) -> Result<String, Box<dyn std::error::Error>> {
         todo!("Implement this feature later");
     }
 
-    async fn delete_devbox(&self, id: String) -> Result<(), Box<dyn std::error::Error>> {
+    async fn delete_devbox(&self, id: &str) -> Result<(), Box<dyn std::error::Error>> {
         todo!("To be implemented");
     }
 
-    async fn start_devbox(&self, id: String) -> Result<(), Box<dyn std::error::Error>> {
+    async fn start_devbox(&self, id: &str) -> Result<(), Box<dyn std::error::Error>> {
         todo!("To be implemented");
     }
 
-    async fn stop_devbox(&self, id: String) -> Result<(), Box<dyn std::error::Error>> {
+    async fn stop_devbox(&self, id: &str) -> Result<(), Box<dyn std::error::Error>> {
         todo!("To be implemented");
     }
 

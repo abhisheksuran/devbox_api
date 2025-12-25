@@ -3,7 +3,7 @@ use crate::providers::ProviderEnum;
 use rusqlite::params;
 
 pub async fn get_provider_and_id(
-    id: String,
+    id: &String,
 ) -> Result<(ProviderEnum, String), Box<dyn std::error::Error>> {
     let conn = DefaultDB::get_db().unwrap();
     let mut stmt = conn.prepare("SELECT provider, resource_id FROM containers WHERE id = ?")?;
@@ -83,9 +83,21 @@ pub async fn insert_container(
     Ok(())
 }
 
-pub async fn delete_container(id: String) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn delete_container(id: &str) -> Result<(), Box<dyn std::error::Error>> {
     let conn = DefaultDB::get_db()?;
     conn.execute("DELETE FROM containers WHERE resource_id = ?", params![id])?;
+    Ok(())
+}
+
+pub async fn update_container_resource_id(
+    task_id: &str,
+    resource_id: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let conn = DefaultDB::get_db()?;
+    conn.execute(
+        "UPDATE containers SET resource_id = ?1 WHERE task_id = ?2",
+        rusqlite::params![resource_id, task_id],
+    )?;
     Ok(())
 }
 

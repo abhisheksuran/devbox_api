@@ -2,7 +2,7 @@ use crate::apps::devbox::{
     ActionEnum, ActionQuery, ContainerListResponse, ProviderQuery, action_devbox, create_devbox,
     validate_state,
 };
-use crate::db::{insert_task, list_containers};
+use crate::db::{get_provider_and_id, insert_task, list_containers};
 use crate::logs::{ASYNC_TASK_ID, TASK_LOGGERS};
 use crate::models::DevBox;
 use crate::providers::docker::handle_exec_stream;
@@ -150,7 +150,8 @@ pub async fn websocket_exec_handler(
         }
     };
     let docker = state.get_docker_connection();
-    ws.on_upgrade(move |socket| handle_exec_stream(socket, docker, id))
+    let (_, resource_id) = get_provider_and_id(&id).await.unwrap();
+    ws.on_upgrade(move |socket| handle_exec_stream(socket, docker, resource_id))
 }
 
 #[utoipa::path(

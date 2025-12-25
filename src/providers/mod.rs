@@ -40,15 +40,15 @@ impl ToString for ProviderEnum {
 pub trait DevBoxProvider {
     async fn create_devbox(
         &mut self,
-        devcontainer: Option<DevBox>,
+        devcontainer: DevBox,
         path: String,
-    ) -> Result<serde_json::Value, Box<dyn std::error::Error>>;
+    ) -> Result<String, Box<dyn std::error::Error>>;
 
-    async fn delete_devbox(&self, id: String) -> Result<(), Box<dyn std::error::Error>>;
+    async fn delete_devbox(&self, id: &str) -> Result<(), Box<dyn std::error::Error>>;
 
-    async fn start_devbox(&self, id: String) -> Result<(), Box<dyn std::error::Error>>;
+    async fn start_devbox(&self, id: &str) -> Result<(), Box<dyn std::error::Error>>;
 
-    async fn stop_devbox(&self, id: String) -> Result<(), Box<dyn std::error::Error>>;
+    async fn stop_devbox(&self, id: &str) -> Result<(), Box<dyn std::error::Error>>;
 
     async fn get_status(&self, id: String) -> Result<String, Box<dyn std::error::Error>>;
 

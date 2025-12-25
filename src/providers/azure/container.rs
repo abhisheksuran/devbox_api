@@ -75,7 +75,7 @@ pub async fn create(
     subscription: &str,
     resource_group: &str,
     token: &str,
-) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+) -> Result<String, Box<dyn std::error::Error>> {
     // Send request to Azure
     let client = Client::new();
     let response = client
@@ -91,9 +91,9 @@ pub async fn create(
     // Extract the "id" field
     if let Some(container_id) = body.get("id").and_then(|v| v.as_str()) {
         task_log!("Container Group ID: {}", container_id);
-        Ok(serde_json::json!({ "status": "success", "container_id": container_id }))
+        Ok(container_id.to_string().into())
     } else {
-        Ok(serde_json::json!({ "status": "notfound", "container_id": "Not Found" }))
+        Ok("Not Found".to_string().into())
     }
 }
 

@@ -41,22 +41,22 @@ impl DevBoxProvider for DockerProvider {
 
     async fn create_devbox(
         &mut self,
-        devcontainer: Option<DevBox>,
+        devcontainer: DevBox,
         path: String,
-    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    ) -> Result<String, Box<dyn std::error::Error>> {
         let docker = self.connection.clone();
 
         // create_image(docker.clone(), &devcontainer).await?;
-        let devcontainer = match devcontainer {
-            Some(dc) => dc,
-            None => DevBox::new(path.clone()).await,
-        };
+        // let devcontainer = match devcontainer {
+        //     Some(dc) => dc,
+        //     None => DevBox::new(path.clone()).await,
+        // };
         devcontainer
             .create_image(path.clone(), docker.clone())
             .await?;
         let id = create(docker.clone(), &devcontainer, &path).await?;
         if devcontainer.start_on_create.unwrap_or(false) {
-            start(docker.clone(), id.clone()).await?;
+            start(docker.clone(), &id).await?;
         }
 
         // spawn a task that tails container logs and forwards to sender
@@ -81,48 +81,48 @@ impl DevBoxProvider for DockerProvider {
             exec(docker, id.clone(), Some(script)).await?;
         }
 
-        let status = match devcontainer.start_on_create {
-            Some(_s) => {
-                if _s {
-                    "running"
-                } else {
-                    "created"
-                }
-            }
-            None => "created",
-        };
-        insert_container("docker", &devcontainer.name, status, &t_id, &id.clone()).await?;
-        Ok(json!({ "status": "success", "container_id": id }))
+        // let status = match devcontainer.start_on_create {
+        //     Some(_s) => {
+        //         if _s {
+        //             "running"
+        //         } else {
+        //             "created"
+        //         }
+        //     }
+        //     None => "created",
+        // };
+        // insert_container("docker", &devcontainer.name, status, &t_id, &id.clone()).await?;
+        Ok(id)
     }
 
-    async fn delete_devbox(&self, id: String) -> Result<(), Box<dyn std::error::Error>> {
+    async fn delete_devbox(&self, id: &str) -> Result<(), Box<dyn std::error::Error>> {
         let docker = self.connection.clone();
-        match remove(docker, id.clone()).await {
+        match remove(docker, id).await {
             Ok(()) => (),
             _ => return Err("Fail to delete container".into()),
         };
-        delete_container(id).await?;
+        // delete_container(id).await?;
         Ok(())
     }
 
-    async fn start_devbox(&self, id: String) -> Result<(), Box<dyn std::error::Error>> {
+    async fn start_devbox(&self, id: &str) -> Result<(), Box<dyn std::error::Error>> {
         let docker = self.connection.clone();
-        match start(docker, id.clone()).await {
+        match start(docker, id).await {
             Ok(()) => (),
             _ => return Err("Fail to start container".into()),
         }
 
-        update_container_status(&id, "running").await?;
+        // update_container_status(&id, "running").await?;
         Ok(())
     }
 
-    async fn stop_devbox(&self, id: String) -> Result<(), Box<dyn std::error::Error>> {
+    async fn stop_devbox(&self, id: &str) -> Result<(), Box<dyn std::error::Error>> {
         let docker = self.connection.clone();
-        match stop(docker, id.clone()).await {
+        match stop(docker, id).await {
             Ok(()) => (),
             _ => return Err("Fail to stop container".into()),
         }
-        update_container_status(&id, "exited").await?;
+        // update_container_status(&id, "exited").await?;
         Ok(())
     }
 

@@ -16,7 +16,7 @@ pub struct AppState {
 impl AppState {
     pub fn get_provider_strategy(
         &self,
-        provider: ProviderEnum,
+        provider: &ProviderEnum,
     ) -> Box<dyn DevBoxProvider + Send + Sync> {
         match provider {
             ProviderEnum::Docker => Box::new(self.docker.clone()),

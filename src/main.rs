@@ -39,7 +39,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
 
     let allowed_origin =
-        env::var("ALLOWED_ORIGIN").unwrap_or_else(|_| "http://127.0.0.1:3000".to_string());
+        env::var("ALLOWED_ORIGIN").unwrap_or_else(|_| "http://localhost:8080".to_string());
 
     let origin_header =
         HeaderValue::from_str(&allowed_origin).expect("Invalid ALLOWED_ORIGIN value");

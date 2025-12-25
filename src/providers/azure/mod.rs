@@ -46,13 +46,13 @@ impl DevBoxProvider for AzureProvider {
 
     async fn create_devbox(
         &mut self,
-        devcontainer: Option<DevBox>,
+        devcontainer: DevBox,
         path: String,
-    ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
-        let devcontainer = match devcontainer {
-            Some(dc) => dc,
-            None => DevBox::new(path.clone()).await,
-        };
+    ) -> Result<String, Box<dyn std::error::Error>> {
+        // let devcontainer = match devcontainer {
+        //     Some(dc) => dc,
+        //     None => DevBox::new(path.clone()).await,
+        // };
         let devcontainer_cp = devcontainer.clone();
 
         let docker = Arc::new(Docker::connect_with_local_defaults().unwrap());
@@ -115,20 +115,20 @@ impl DevBoxProvider for AzureProvider {
         )
         .await
         {
-            Ok(()) => Ok(serde_json::json!({ "status": "success", "container_id": id })),
+            Ok(()) => Ok(id),
             _ => Err("Fail to create container".into()),
         }
     }
 
-    async fn delete_devbox(&self, id: String) -> Result<(), Box<dyn std::error::Error>> {
+    async fn delete_devbox(&self, id: &str) -> Result<(), Box<dyn std::error::Error>> {
         todo!("To be implemented");
     }
 
-    async fn start_devbox(&self, id: String) -> Result<(), Box<dyn std::error::Error>> {
+    async fn start_devbox(&self, id: &str) -> Result<(), Box<dyn std::error::Error>> {
         todo!("To be implemented");
     }
 
-    async fn stop_devbox(&self, id: String) -> Result<(), Box<dyn std::error::Error>> {
+    async fn stop_devbox(&self, id: &str) -> Result<(), Box<dyn std::error::Error>> {
         todo!("To be implemented");
     }
     async fn get_status(&self, id: String) -> Result<String, Box<dyn std::error::Error>> {
