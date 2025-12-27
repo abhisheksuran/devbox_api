@@ -54,12 +54,6 @@ pub async fn new_devbox(
         return validation_response;
     }
 
-    let LOG_DIR = AppState::get_state(state.clone())
-        .await
-        .ok()
-        .unwrap()
-        .log_storage_path;
-
     let provider = params.provider;
     let path_param = params.path;
     let path = path_param.clone();
@@ -69,6 +63,12 @@ pub async fn new_devbox(
     if !is_state_initialized.status().is_success() {
         return is_state_initialized;
     }
+
+    let LOG_DIR = AppState::get_state(state.clone())
+        .await
+        .ok()
+        .unwrap()
+        .log_storage_path;
 
     // convert Option<Json<DevBox>> -> Option<DevBox>
     let devcontainer = devcontainer.clone().map(|j| j.0);
