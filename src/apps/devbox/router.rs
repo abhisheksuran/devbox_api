@@ -2,7 +2,7 @@ use crate::apps::devbox::{
     ActionEnum, ActionQuery, ContainerListResponse, ProviderQuery, action_devbox, create_devbox,
     validate_state,
 };
-use crate::db::{get_provider_and_id, insert_task, list_containers};
+use crate::db::{get_container, get_provider_and_id, insert_task, list_containers};
 use crate::logs::{ASYNC_TASK_ID, TASK_LOGGERS};
 use crate::models::DevBox;
 use crate::providers::docker::handle_exec_stream;
@@ -155,7 +155,7 @@ pub async fn websocket_exec_handler(
 }
 
 #[utoipa::path(
-    get,
+    post,
     path = "/devbox/{id}",
     description = "Start, Stop or Delete a container by passing devbox container id",
     params( ("id" = i32, Path, description = "Numeric ID of devbox"), ("action" = ActionEnum, Query, description = "Action to take")),
@@ -218,6 +218,27 @@ pub async fn list_all_devbox() -> impl IntoResponse {
             Ok(Json(mapped))
         }
         Err(_) => Err((StatusCode::INTERNAL_SERVER_ERROR, "Failed to list devbox")),
+    }
+}
+
+#[utoipa::path(
+    get,
+    path = "/devbox/{id}",
+    description = "Get container details",
+    responses(
+        (status = 200, description = "Task accepted"),
+        (status = 400, description = "Bad Request"),
+        (status = 500, description = "Internal server error")
+    )
+)]
+
+pub async fn get_details(Path(id): Path<String>) -> impl IntoResponse {
+    match get_container(&id).await {
+        Ok(data) => (StatusCode::OK, Json(data)),
+        Err(e) => {
+            let err_body = json!({ "MSG": format!("ERROR FETCHING DATA: {e}") });
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(err_body))
+        }
     }
 }
 

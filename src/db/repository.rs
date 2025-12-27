@@ -1,6 +1,7 @@
 use crate::db::DefaultDB;
 use crate::providers::ProviderEnum;
 use rusqlite::params;
+use tracing::info;
 
 pub async fn get_provider_and_id(
     id: &String,
@@ -65,6 +66,25 @@ pub async fn list_containers()
     }
     // let json = serde_json::to_string(&containers?)?;
     // Ok(json)
+}
+pub async fn get_container(id: &str) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    let conn = DefaultDB::get_db()?;
+    let mut stmt =
+        conn.prepare("SELECT id, name, provider, status FROM containers WHERE id = ?1")?;
+
+    let container_json = stmt.query_row(params![id], |row| {
+        let id: i64 = row.get(0)?;
+        let name: String = row.get(1)?;
+        let provider: String = row.get(2)?;
+        let status: String = row.get(3)?;
+        Ok(serde_json::json!({
+            "id": id,
+            "name": name,
+            "provider": provider,
+            "status": status,
+        }))
+    })?;
+    Ok(container_json)
 }
 
 pub async fn insert_container(
