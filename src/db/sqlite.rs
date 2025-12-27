@@ -36,7 +36,7 @@ impl DB {
         )?;
         conn.execute(
             "CREATE TABLE IF NOT EXISTS providers (
-                name TEXT NOT NULL, 
+                name TEXT PRIMARY KEY, 
                 config TEXT NOT NULL
             )",
             [],
@@ -47,6 +47,18 @@ impl DB {
                 provider TEXT NOT NULL,
                 status TEXT NOT NULL, 
                 request TEXT NOT NULL
+            )",
+            [],
+        )?;
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS artifactories (
+                name TEXT NOT NULL,
+                provider TEXT NOT NULL,
+                server TEXT NOT NULL,
+                repository TEXT NOT NULL,
+                user TEXT NULL,
+                password TEXT NULL,
+                config TEXT NULL
             )",
             [],
         )?;

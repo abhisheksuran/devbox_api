@@ -36,6 +36,17 @@ impl AzureProvider {
         self.token = token.token.secret().to_string();
         Ok(token)
     }
+    pub fn new(config: serde_json::Value, artifactory: Artifactory) -> Self {
+        AzureProvider {
+            tanent: config.get("tanent").unwrap().to_string(),
+            subscription: config.get("subscription").unwrap().to_string(),
+            token: "TOKEN".to_string(),
+            location: config.get("location").unwrap().to_string(),
+            resource_group: config.get("resource_group").unwrap().to_string(),
+            address_type: Some(config.get("address_type").unwrap().to_string()),
+            artifactory,
+        }
+    }
 }
 
 #[async_trait::async_trait]

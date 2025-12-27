@@ -1,5 +1,10 @@
 use crate::db::DefaultDB;
 use crate::providers::ProviderEnum;
+use crate::providers::aws::AwsProvider;
+use crate::providers::azure::AzureProvider;
+use crate::providers::docker::DockerProvider;
+use crate::utils::artifactory::{self, Artifactory};
+use azure_identity::AzureDeveloperCliCredential;
 use rusqlite::params;
 use tracing::info;
 
@@ -41,6 +46,32 @@ pub async fn insert_task(
         params![id, provider, status, request],
     )?;
     Ok(())
+}
+
+pub async fn get_latest_config()
+-> Result<Vec<(String, serde_json::Value, Artifactory)>, Box<dyn std::error::Error + Send + Sync>> {
+    let conn: rusqlite::Connection = DefaultDB::get_db().unwrap();
+    type DataRow = Vec<(String, serde_json::Value, Artifactory)>;
+    let mut stmt = conn.prepare("SELECT p.name, p.config, a.server, a.repository, a.user, a.password  FROM providers as p INNER JOIN artifactories as a ON p.name = a.provider")?;
+    let container_iter = stmt.query_map([], |row| {
+        let provider: String = row.get(0)?;
+        let config: String = row.get(1)?;
+        let config_json = serde_json::to_value(config).unwrap();
+        let artifactory = Artifactory {
+            server: row.get(2)?,
+            repository_name: row.get(3)?,
+            username: row.get(4)?,
+            password: row.get(5)?,
+        };
+
+        Ok((provider, config_json, artifactory))
+    })?;
+
+    let provider_data: Result<DataRow, _> = container_iter.collect();
+    match provider_data {
+        Ok(data) => Ok(data),
+        Err(_) => Err("Unable to fetch container list from db".into()),
+    }
 }
 
 pub async fn list_containers()
