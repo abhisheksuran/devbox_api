@@ -1,17 +1,14 @@
-use crate::providers::aws::AwsProvider;
-use crate::providers::azure::AzureProvider;
-use crate::providers::docker::DockerProvider;
-use crate::utils::artifactory::Artifactory;
+use apps::artifactory::artifacotry_routes;
 use apps::config::config_routes;
 use apps::devbox::devbox_routes;
+use apps::provider::provider_routes;
 use axum::{Router, routing::get};
-use db::get_latest_config;
 use http::{HeaderName, HeaderValue, Method};
 use std::env;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tokio::time::{Duration, sleep};
-use tracing::{error, info, warn};
+use tracing::info;
 use utils::AppState;
 use utils::monitor::container_status_update;
 mod apps;
@@ -41,49 +38,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     continue;
                 }
             }
-
-            {
-                let mut write_guard = bg_state.write().await;
-
-                let previous_state = write_guard.take(); // Option<AppState>
-
-                let provider_data = match get_latest_config().await {
-                    Ok(data) => data,
-                    Err(e) => {
-                        error!("Failed to obtain provider config: {e}");
-                        *write_guard = previous_state;
-                        sleep(Duration::from_secs(5)).await;
-                        continue;
-                    }
-                };
-
-                let mut azure_opt: Option<AzureProvider> = None;
-                let mut aws_opt: Option<AwsProvider> = None;
-                let mut docker_art_opt: Option<Artifactory> = None;
-
-                for (provider, cfg, art) in provider_data {
-                    match provider.as_str() {
-                        "azure" => azure_opt = Some(AzureProvider::new(cfg, art)),
-                        "aws" => aws_opt = Some(AwsProvider::new(cfg, art)),
-                        "docker" => docker_art_opt = Some(art),
-                        other => warn!("Unknown provider `{other}` – ignored"),
-                    }
-                }
-
-                let docker_conn = match &previous_state {
-                    Some(prev) => prev.docker.get_connection().into(),
-                    None => Arc::new(bollard::Docker::connect_with_local_defaults().unwrap()),
-                };
-
-                let new_state = AppState {
-                    docker: DockerProvider::new(docker_conn, docker_art_opt),
-                    azure: azure_opt,
-                    aws: aws_opt,
-                    log_storage_path: previous_state.unwrap().log_storage_path,
-                };
-
-                *write_guard = Some(new_state);
-            }
             sleep(Duration::from_secs(5)).await;
         }
     });
@@ -102,6 +56,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let app = Router::new()
         .with_state(app_state.clone())
         .nest("/devbox", devbox_routes(app_state.clone()))
+        .nest("/artifactories", artifacotry_routes(app_state.clone()))
+        .nest("/providers", provider_routes(app_state.clone()))
         .nest("/config", config_routes(app_state.clone()))
         // OpenAPI JSON
         .route(

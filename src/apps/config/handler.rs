@@ -3,12 +3,13 @@ use bollard::Docker;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-use crate::db::{insert_provider, update_provider_db};
+use crate::db::{insert_artifactory, insert_provider, update_provider_db};
 use crate::providers::DevBoxProvider;
 use crate::providers::aws::AwsProvider;
 use crate::providers::azure::AzureProvider;
 use crate::providers::docker::DockerProvider;
 use crate::utils::AppState;
+use crate::utils::artifactory::Artifactory;
 use axum::extract::State;
 
 use std::env;
@@ -77,12 +78,34 @@ pub async fn update_provider(
 
     if let Some(azure) = provider.as_any().downcast_ref::<AzureProvider>() {
         azure_provider = Some(azure.clone());
-        update_provider_db("azure", serde_json::to_string(azure).unwrap())
+        let mut az_val = serde_json::to_value(azure).unwrap();
+        // let art: Artifactory = serde_json::from_value(*az_val.get("artifactory").unwrap()).unwrap();
+        // insert_artifactory(
+        //     "azure",
+        //     &*art.server,
+        //     &*art.repository_name,
+        //     art.username.as_deref().unwrap(),
+        //     art.password.as_deref().unwrap(),
+        //     "",
+        // )
+        // .await;
+        az_val = az_val
+            .as_object_mut()
+            .unwrap()
+            .remove("artifactory")
+            .unwrap();
+        update_provider_db("azure", serde_json::to_string(&az_val).unwrap())
             .await
             .unwrap();
     } else if let Some(aws) = provider.as_any().downcast_ref::<AwsProvider>() {
         aws_provider = Some(aws.clone());
-        update_provider_db("aws", serde_json::to_string(aws).unwrap())
+        let aws_val = serde_json::to_value(aws)
+            .unwrap()
+            .as_object_mut()
+            .unwrap()
+            .remove("artifactory")
+            .unwrap();
+        update_provider_db("aws", serde_json::to_string(&aws_val).unwrap())
             .await
             .unwrap();
     } else if let Some(docker) = provider.as_any().downcast_ref::<DockerProvider>() {

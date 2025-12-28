@@ -7,6 +7,7 @@ use crate::utils::artifactory::{self, Artifactory};
 use azure_identity::AzureDeveloperCliCredential;
 use rusqlite::params;
 use tracing::info;
+use utoipa::openapi::security::Password;
 
 pub async fn get_provider_and_id(
     id: &String,
@@ -48,9 +49,75 @@ pub async fn insert_task(
     Ok(())
 }
 
+pub async fn list_artifactory()
+-> Result<Vec<(String, String, String, String, String, String)>, Box<dyn std::error::Error>> {
+    let conn = DefaultDB::get_db()?;
+    type ArtifactoryRow = Vec<(String, String, String, String, String, String)>;
+    let mut stmt = conn.prepare(
+        "SELECT provider, server, repository, user, password, config FROM artifactories",
+    )?;
+    let aartifactory_iter = stmt.query_map([], |row| {
+        let provider: String = row.get(0)?;
+        let server: String = row.get(1)?;
+        let repository: String = row.get(2)?;
+        let user: String = row.get(3)?;
+        let password: String = row.get(4)?;
+        let config: String = row.get(5)?;
+        Ok((provider, server, repository, user, password, config))
+    })?;
+
+    let artifactories: Result<ArtifactoryRow, _> = aartifactory_iter.collect();
+    match artifactories {
+        Ok(c) => Ok(c),
+        Err(_) => Err("Unable to fetch artifactories list from db".into()),
+    }
+}
+
+pub async fn insert_artifactory(
+    provider: &str,
+    server: &str,
+    repository: &str,
+    user: &str,
+    password: &str,
+    config: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let conn = DefaultDB::get_db()?;
+    conn.execute(
+        "INSERT INTO artifactories (provider, server, repository, user, password, config)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+        params![provider, server, repository, user, password, config],
+    )?;
+    Ok(())
+}
+
+pub async fn update_artifactory(
+    provider: &str,
+    server: &str,
+    repository: &str,
+    user: &str,
+    password: &str,
+    config: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let conn = DefaultDB::get_db()?;
+    conn.execute(
+        "UPDATE artifactories SET  server = ?2, repository = ?3, user = ?4, password = ?5, config = ?6 WHERE provider = ?1",
+        rusqlite::params![provider, server, repository, user, password, config],
+    )?;
+    Ok(())
+}
+
+pub async fn delete_artifactory(provider: &str) -> Result<(), Box<dyn std::error::Error>> {
+    let conn = DefaultDB::get_db()?;
+    conn.execute(
+        "DELETE FROM artifactories WHERE provider = ?",
+        params![provider],
+    )?;
+    Ok(())
+}
+
 pub async fn get_latest_config()
--> Result<Vec<(String, serde_json::Value, Artifactory)>, Box<dyn std::error::Error + Send + Sync>> {
-    let conn: rusqlite::Connection = DefaultDB::get_db().unwrap();
+-> Result<Vec<(String, serde_json::Value, Artifactory)>, Box<dyn std::error::Error>> {
+    let conn: rusqlite::Connection = DefaultDB::get_db()?;
     type DataRow = Vec<(String, serde_json::Value, Artifactory)>;
     let mut stmt = conn.prepare("SELECT p.name, p.config, a.server, a.repository, a.user, a.password  FROM providers as p INNER JOIN artifactories as a ON p.name = a.provider")?;
     let container_iter = stmt.query_map([], |row| {
@@ -187,4 +254,27 @@ pub async fn update_provider_db(
         rusqlite::params![provider, config],
     )?;
     Ok(())
+}
+
+pub async fn delete_provider(provider: &str) -> Result<(), Box<dyn std::error::Error>> {
+    let conn = DefaultDB::get_db()?;
+    conn.execute("DELETE FROM providers WHERE name = ?", params![provider])?;
+    Ok(())
+}
+
+pub async fn list_providers() -> Result<Vec<(String, String)>, Box<dyn std::error::Error>> {
+    let conn = DefaultDB::get_db()?;
+    type ProviderRow = Vec<(String, String)>;
+    let mut stmt = conn.prepare("SELECT name, config FROM providers")?;
+    let provider_iter = stmt.query_map([], |row| {
+        let provider: String = row.get(0)?;
+        let config: String = row.get(1)?;
+        Ok((provider, config))
+    })?;
+
+    let providers: Result<ProviderRow, _> = provider_iter.collect();
+    match providers {
+        Ok(c) => Ok(c),
+        Err(_) => Err("Unable to fetch providers list from db".into()),
+    }
 }

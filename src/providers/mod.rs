@@ -4,6 +4,8 @@ pub mod aws;
 pub mod azure;
 pub mod docker;
 
+use tracing_subscriber::field::debug;
+
 use crate::models::DevBox;
 
 #[derive(
@@ -14,6 +16,10 @@ pub enum ProviderEnum {
     Docker,
     Azure,
     Aws,
+}
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct ProviderModQuery {
+    pub provider: ProviderEnum,
 }
 
 impl From<String> for ProviderEnum {

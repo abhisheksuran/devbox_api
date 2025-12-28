@@ -52,8 +52,7 @@ impl DB {
         )?;
         conn.execute(
             "CREATE TABLE IF NOT EXISTS artifactories (
-                name TEXT NOT NULL,
-                provider TEXT NOT NULL,
+                provider TEXT PRIMARY KEY,
                 server TEXT NOT NULL,
                 repository TEXT NOT NULL,
                 user TEXT NULL,
