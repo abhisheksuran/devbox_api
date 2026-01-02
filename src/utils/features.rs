@@ -9,7 +9,7 @@ use std::path::Path;
 use std::sync::Arc;
 use tokio_stream::StreamExt;
 
-async fn get_docker_file(
+pub async fn get_docker_file(
     devcontainer: &DevBox,
     sorted_features: Option<&Vec<String>>,
     dev_path: &str,
@@ -192,7 +192,7 @@ fn load_feature(
     Ok(())
 }
 
-fn feature_to_dockerfile(
+pub fn feature_to_dockerfile(
     base_path: &String,
     devbox: &DevBox,
 ) -> Result<Vec<String>, Box<dyn std::error::Error>> {

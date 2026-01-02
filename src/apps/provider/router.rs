@@ -15,14 +15,15 @@ use tokio::sync::RwLock;
 #[derive(Clone, serde::Deserialize, serde::Serialize)]
 pub struct ProviderMod {
     provider: ProviderEnum,
-    config: String,
+    config: serde_json::Value,
 }
 
 pub async fn add_provider(
     State(state): State<Arc<RwLock<Option<AppState>>>>,
     Json(data): Json<ProviderMod>,
 ) -> impl IntoResponse {
-    let success = (insert_provider(&data.provider.to_string(), &data.config).await).is_ok();
+    let success =
+        (insert_provider(&data.provider.to_string(), &data.config.to_string()).await).is_ok();
     if success {
         update_appstate(state).await;
     };
@@ -32,7 +33,7 @@ pub async fn modify_providers(
     State(state): State<Arc<RwLock<Option<AppState>>>>,
     Json(data): Json<ProviderMod>,
 ) -> impl IntoResponse {
-    let success = update_provider_db(&data.provider.to_string(), data.config)
+    let success = update_provider_db(&data.provider.to_string(), data.config.to_string())
         .await
         .is_ok();
     if success {

@@ -2,6 +2,7 @@ use crate::apps::config::update_provider;
 use crate::providers::aws::AwsProvider;
 use crate::providers::azure::AzureProvider;
 use crate::providers::docker::DockerProvider;
+use crate::providers::docker::DockerProviderMod;
 use crate::utils::AppState;
 use crate::utils::artifactory::Artifactory;
 use axum::Json;
@@ -60,10 +61,14 @@ pub async fn update_aws_provider(
 )]
 pub async fn update_docker_provider(
     State(state): State<Arc<RwLock<Option<AppState>>>>,
-    Json(docker_artifactory): Json<Artifactory>,
+    Json(docker_model): Json<DockerProviderMod>,
 ) -> impl IntoResponse {
     let docker_connection = Arc::new(Docker::connect_with_local_defaults().unwrap());
 
-    let docker_provider = DockerProvider::new(docker_connection, Some(docker_artifactory));
+    let docker_provider = DockerProvider::new(
+        docker_connection,
+        docker_model.artifactory,
+        docker_model.remote,
+    );
     update_provider(state, docker_provider).await
 }

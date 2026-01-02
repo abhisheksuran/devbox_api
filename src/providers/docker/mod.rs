@@ -1,37 +1,75 @@
 mod action;
 mod container;
 
-use crate::db::{delete_container, insert_container, update_container_status};
 use crate::models::DevBox;
 use crate::providers::DevBoxProvider;
 use crate::task_log;
+use crate::utils::{Remote, TunnelConfig};
 use crate::{logs::ASYNC_TASK_ID, utils::artifactory::Artifactory};
-
 pub use action::handle_exec_stream;
 use bollard::Docker;
 use container::{create, exec, remove, start, status, stop};
-// use image::create_image;
-use serde_json::json;
 use std::sync::Arc;
+
+#[derive(Clone, serde::Deserialize, serde::Serialize)]
+pub struct DockerProviderMod {
+    pub artifactory: Option<Artifactory>,
+    pub remote: Option<TunnelConfig>,
+}
 
 #[derive(Clone)]
 pub struct DockerProvider {
     pub artifactory: Option<Artifactory>,
     connection: Arc<Docker>,
+    pub remote: Option<TunnelConfig>,
 }
 
 impl DockerProvider {
-    pub fn new(connection: Arc<Docker>, artifactory: Option<Artifactory>) -> Self {
+    pub fn new(
+        connection: Arc<Docker>,
+        artifactory: Option<Artifactory>,
+        remote: Option<TunnelConfig>,
+    ) -> Self {
         DockerProvider {
             connection,
             artifactory,
+            remote,
         }
     }
 
     pub fn get_connection(&self) -> Arc<Docker> {
         self.connection.clone()
     }
+
+    pub async fn refresh_connection(
+        state: Arc<tokio::sync::RwLock<Option<crate::utils::AppState>>>,
+        remote: Option<TunnelConfig>,
+    ) -> Arc<Docker> {
+        match remote.clone() {
+            Some(cfg) => {
+                // let ssh = DockerProvider::connect(cfg.clone()).await;
+                let local_port = cfg.local_port.clone();
+                crate::utils::update_tunnel(state, cfg.service_port, cfg.local_port, Some(cfg))
+                    .await;
+                Arc::new(
+                    bollard::Docker::connect_with_http(
+                        format!("127.0.0.1:{}", local_port).as_str(),
+                        10,
+                        bollard::API_DEFAULT_VERSION,
+                    )
+                    .unwrap(),
+                )
+            }
+            None => {
+                crate::utils::update_tunnel(state, 0, 0, None).await;
+                Arc::new(bollard::Docker::connect_with_local_defaults().unwrap())
+            }
+        }
+    }
 }
+
+#[async_trait::async_trait]
+impl Remote for DockerProvider {}
 
 #[async_trait::async_trait]
 impl DevBoxProvider for DockerProvider {
@@ -46,11 +84,6 @@ impl DevBoxProvider for DockerProvider {
     ) -> Result<String, Box<dyn std::error::Error>> {
         let docker = self.connection.clone();
 
-        // create_image(docker.clone(), &devcontainer).await?;
-        // let devcontainer = match devcontainer {
-        //     Some(dc) => dc,
-        //     None => DevBox::new(path.clone()).await,
-        // };
         devcontainer
             .create_image(path.clone(), docker.clone())
             .await?;
@@ -80,18 +113,6 @@ impl DevBoxProvider for DockerProvider {
         if let Some(script) = devcontainer.post_start_script.clone() {
             exec(docker, id.clone(), Some(script)).await?;
         }
-
-        // let status = match devcontainer.start_on_create {
-        //     Some(_s) => {
-        //         if _s {
-        //             "running"
-        //         } else {
-        //             "created"
-        //         }
-        //     }
-        //     None => "created",
-        // };
-        // insert_container("docker", &devcontainer.name, status, &t_id, &id.clone()).await?;
         Ok(id)
     }
 

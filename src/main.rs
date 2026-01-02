@@ -12,6 +12,7 @@ use tracing::info;
 use utils::AppState;
 use utils::monitor::container_status_update;
 mod apps;
+mod builders;
 mod db;
 mod logs;
 mod models;

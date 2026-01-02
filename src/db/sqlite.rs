@@ -54,10 +54,19 @@ impl DB {
             "CREATE TABLE IF NOT EXISTS artifactories (
                 provider TEXT PRIMARY KEY,
                 server TEXT NOT NULL,
-                repository TEXT NOT NULL,
-                user TEXT NULL,
+                repository_name TEXT NOT NULL,
+                username TEXT NULL,
                 password TEXT NULL,
                 config TEXT NULL
+            )",
+            [],
+        )?;
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS builders (
+                name TEXT PRIMARY KEY,
+                remote TEXT NOT NULL,
+                Builder TEXT NOT NULL,
+                config TEXT NULL,
             )",
             [],
         )?;

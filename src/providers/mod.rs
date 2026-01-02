@@ -4,8 +4,6 @@ pub mod aws;
 pub mod azure;
 pub mod docker;
 
-use tracing_subscriber::field::debug;
-
 use crate::models::DevBox;
 
 #[derive(

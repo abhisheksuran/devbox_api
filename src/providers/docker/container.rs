@@ -93,14 +93,20 @@ pub async fn status(docker: Arc<Docker>, id: String) -> Result<String, Box<dyn s
             if let Some(state) = info.state {
                 match state.status {
                     Some(bollard::secret::ContainerStateStatusEnum::RUNNING) => {
+                        info!("STATUS RUNNING");
                         Ok("running".to_string())
                     }
                     Some(bollard::secret::ContainerStateStatusEnum::EXITED) => {
+                        info!("STATUS EXIT");
                         Ok("exited".to_string())
                     }
-                    _ => Ok("unknown".to_string()),
+                    _ => {
+                        info!("STATUS unknown");
+                        Ok("unknown".to_string())
+                    }
                 }
             } else {
+                info!("STATUS ELSE UKNOWN");
                 Ok("unknown".to_string())
             }
         }

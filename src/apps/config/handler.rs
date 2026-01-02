@@ -45,6 +45,7 @@ pub async fn update_state(State(state): State<Arc<RwLock<Option<AppState>>>>) ->
             existing_state.docker = DockerProvider::new(
                 Arc::new(Docker::connect_with_local_defaults().unwrap()),
                 None,
+                None,
             )
         }
         None => {
@@ -53,10 +54,13 @@ pub async fn update_state(State(state): State<Arc<RwLock<Option<AppState>>>>) ->
                 docker: DockerProvider::new(
                     Arc::new(Docker::connect_with_local_defaults().unwrap()),
                     None,
+                    None,
                 ),
                 azure: None,
                 aws: None,
                 log_storage_path: get_log_path().unwrap_or(DEFAULT_LOG_DIR.to_string()),
+                ssh_session: None,
+                tunnel: None,
             };
             *guard = Some(new_state.clone());
 
@@ -79,16 +83,17 @@ pub async fn update_provider(
     if let Some(azure) = provider.as_any().downcast_ref::<AzureProvider>() {
         azure_provider = Some(azure.clone());
         let mut az_val = serde_json::to_value(azure).unwrap();
-        // let art: Artifactory = serde_json::from_value(*az_val.get("artifactory").unwrap()).unwrap();
-        // insert_artifactory(
-        //     "azure",
-        //     &*art.server,
-        //     &*art.repository_name,
-        //     art.username.as_deref().unwrap(),
-        //     art.password.as_deref().unwrap(),
-        //     "",
-        // )
-        // .await;
+        let art: Artifactory =
+            serde_json::from_value(az_val.get("artifactory").unwrap().clone()).unwrap();
+        let _ = insert_artifactory(
+            "azure",
+            &art.server,
+            &art.repository_name,
+            art.username.as_deref().unwrap(),
+            art.password.as_deref().unwrap(),
+            "",
+        )
+        .await;
         az_val = az_val
             .as_object_mut()
             .unwrap()
@@ -99,8 +104,19 @@ pub async fn update_provider(
             .unwrap();
     } else if let Some(aws) = provider.as_any().downcast_ref::<AwsProvider>() {
         aws_provider = Some(aws.clone());
-        let aws_val = serde_json::to_value(aws)
-            .unwrap()
+        let mut aws_val = serde_json::to_value(aws).unwrap();
+        let art: Artifactory =
+            serde_json::from_value(aws_val.get("artifactory").unwrap().clone()).unwrap();
+        let _ = insert_artifactory(
+            "aws",
+            &art.server,
+            &art.repository_name,
+            art.username.as_deref().unwrap(),
+            art.password.as_deref().unwrap(),
+            "",
+        )
+        .await;
+        let aws_val = aws_val
             .as_object_mut()
             .unwrap()
             .remove("artifactory")
@@ -110,12 +126,30 @@ pub async fn update_provider(
             .unwrap();
     } else if let Some(docker) = provider.as_any().downcast_ref::<DockerProvider>() {
         docker_provider = Some(docker.clone());
-        update_provider_db(
+        let _ = insert_artifactory(
             "docker",
-            serde_json::to_string(&docker.artifactory).unwrap(),
+            &docker.artifactory.clone().unwrap().server,
+            &docker.artifactory.clone().unwrap().repository_name,
+            docker
+                .artifactory
+                .clone()
+                .unwrap()
+                .username
+                .as_deref()
+                .unwrap(),
+            docker
+                .artifactory
+                .clone()
+                .unwrap()
+                .password
+                .as_deref()
+                .unwrap(),
+            "",
         )
-        .await
-        .unwrap();
+        .await;
+        update_provider_db("docker", serde_json::to_string(&docker.remote).unwrap())
+            .await
+            .unwrap();
     } else {
         // Unsupported provider
         return Response::default();
@@ -129,6 +163,7 @@ pub async fn update_provider(
                 DockerProvider::new(
                     Arc::new(Docker::connect_with_local_defaults().unwrap()),
                     None,
+                    None,
                 )
             });
             existing_state.azure = azure_provider;
@@ -140,10 +175,13 @@ pub async fn update_provider(
                 docker: DockerProvider::new(
                     Arc::new(Docker::connect_with_local_defaults().unwrap()),
                     None,
+                    None,
                 ),
                 azure: azure_provider,
                 aws: aws_provider,
                 log_storage_path: get_log_path().unwrap_or(DEFAULT_LOG_DIR.to_string()),
+                ssh_session: None,
+                tunnel: None,
             };
             *guard = Some(new_state.clone());
             let _ = insert_provider("docker", "").await;
