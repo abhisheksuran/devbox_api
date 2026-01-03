@@ -129,6 +129,13 @@ project-root/
 └── dummy_project/ (optional project subdirectory)
 ```
 
+## Flow
+
+
+<div style="text-align: center;">
+  <img src="diagram.png" alt="alt text" width="500">
+</div>
+
 ## Notes
 
 - Background tasks update container statuses every 5 seconds asynchronously.
