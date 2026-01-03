@@ -133,7 +133,7 @@ project-root/
 
 
 <div style="text-align: center;">
-  <img src="diagram.png" alt="alt text" width="500">
+  <img src="diagram.png" alt="alt text" width="1000">
 </div>
 
 ## Notes
