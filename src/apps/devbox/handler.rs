@@ -11,6 +11,7 @@ use crate::utils::AppState;
 
 pub async fn create_devbox(
     provider: ProviderEnum,
+    builder: &str,
     app_state: &AppState,
     devcontainer: Option<DevBox>,
     path: String,
@@ -31,7 +32,7 @@ pub async fn create_devbox(
         "NA",
     )
     .await?;
-    let resource_id = strategy.create_devbox(devcontainer, path).await?;
+    let resource_id = strategy.create_devbox(builder, devcontainer, path).await?;
 
     update_container_resource_id(&task_id, &resource_id).await?;
     update_container_status(&resource_id, "Created").await?;

@@ -57,6 +57,7 @@ impl DevBoxProvider for AzureProvider {
 
     async fn create_devbox(
         &mut self,
+        builder: &str,
         devcontainer: DevBox,
         path: String,
     ) -> Result<String, Box<dyn std::error::Error>> {
@@ -67,7 +68,9 @@ impl DevBoxProvider for AzureProvider {
         let devcontainer_cp = devcontainer.clone();
 
         let docker = Arc::new(Docker::connect_with_local_defaults().unwrap());
-        devcontainer.create_image(path, docker.clone()).await?;
+        devcontainer
+            .create_image(builder, path, Some(self.artifactory.clone()))
+            .await?;
 
         let image = self
             .artifactory

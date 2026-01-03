@@ -3,7 +3,7 @@ use bollard::Docker;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-use crate::db::{insert_artifactory, insert_provider, update_provider_db};
+use crate::db::{insert_artifactory, insert_builder, insert_provider, update_provider_db};
 use crate::providers::DevBoxProvider;
 use crate::providers::aws::AwsProvider;
 use crate::providers::azure::AzureProvider;
@@ -67,6 +67,7 @@ pub async fn update_state(State(state): State<Arc<RwLock<Option<AppState>>>>) ->
             let _ = insert_provider("docker", "").await;
             let _ = insert_provider("azure", "").await;
             let _ = insert_provider("aws", "").await;
+            let _ = insert_builder("builder1", 0, "docker", "").await;
         }
     }
     Response::default()

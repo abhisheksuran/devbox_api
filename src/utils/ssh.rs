@@ -6,6 +6,10 @@ use tokio::io::copy_bidirectional;
 use tokio::net::TcpListener;
 use tokio_util::sync::CancellationToken;
 
+use std::net::{SocketAddr, ToSocketAddrs};
+use tokio::net::TcpStream;
+use tokio::time::{Duration, timeout};
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct TunnelConfig {
     pub remote_ip: String,
@@ -94,6 +98,27 @@ pub trait Remote {
             .disconnect(russh::Disconnect::ByApplication, "Closing session", "")
             .await?;
         Ok(())
+    }
+
+    async fn check_port(host: &str, port: u16, tout: Option<Duration>) -> bool {
+        let mut addrs: Vec<std::net::SocketAddr> = match (host, port).to_socket_addrs() {
+            Ok(it) => it.collect::<Vec<_>>(),
+            Err(_) => return false,
+        };
+
+        for addr in addrs.drain(..) {
+            match timeout(
+                tout.unwrap_or(Duration::from_secs(5)),
+                TcpStream::connect(addr),
+            )
+            .await
+            {
+                Ok(Ok(_stream)) => return true,
+                Ok(Err(_)) => continue,
+                Err(_) => continue,
+            }
+        }
+        false
     }
 
     async fn live_port_forward(

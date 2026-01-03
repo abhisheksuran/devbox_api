@@ -64,9 +64,9 @@ impl DB {
         conn.execute(
             "CREATE TABLE IF NOT EXISTS builders (
                 name TEXT PRIMARY KEY,
-                remote TEXT NOT NULL,
-                Builder TEXT NOT NULL,
-                config TEXT NULL,
+                remote BOOLEAN NOT NULL,
+                builder TEXT NOT NULL,
+                config TEXT NULL
             )",
             [],
         )?;

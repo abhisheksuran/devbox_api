@@ -1,9 +1,10 @@
+use crate::builders::get_builder_strategy;
 use crate::task_log;
-use crate::utils::build_from_local;
-use bollard::Docker;
+use crate::utils::artifactory::Artifactory;
+// use crate::utils::build_from_local;
+// use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::sync::Arc;
 use utoipa::ToSchema;
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
@@ -45,10 +46,14 @@ impl DevBox {
 
     pub async fn create_image(
         &self,
+        builder: &str,
         path: String,
-        docker: Arc<Docker>,
+        artifactory: Option<Artifactory>,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        build_from_local(docker, self, &path.trim_end_matches('/').to_string()).await?;
+        let builder = get_builder_strategy(builder, artifactory).await?;
+        builder
+            .build(self, &path.trim_end_matches('/').to_string())
+            .await?;
 
         Ok(())
     }

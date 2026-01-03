@@ -3,7 +3,6 @@
 pub mod aws;
 pub mod azure;
 pub mod docker;
-
 use crate::models::DevBox;
 
 #[derive(
@@ -44,6 +43,7 @@ impl ToString for ProviderEnum {
 pub trait DevBoxProvider {
     async fn create_devbox(
         &mut self,
+        builder: &str,
         devcontainer: DevBox,
         path: String,
     ) -> Result<String, Box<dyn std::error::Error>>;

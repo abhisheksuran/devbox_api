@@ -41,6 +41,7 @@ pub struct ProviderQuery {
     pub provider: ProviderEnum,
     #[validate(custom = "validate_path")]
     pub path: String,
+    pub builder: String,
 }
 
 fn validate_path(path: &str) -> Result<(), ValidationError> {

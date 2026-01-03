@@ -1,6 +1,8 @@
 mod action;
 mod container;
 
+use crate::builders::docker::DockerBuilder;
+use crate::db::get_builder;
 use crate::models::DevBox;
 use crate::providers::DevBoxProvider;
 use crate::task_log;
@@ -47,8 +49,7 @@ impl DockerProvider {
     ) -> Arc<Docker> {
         match remote.clone() {
             Some(cfg) => {
-                // let ssh = DockerProvider::connect(cfg.clone()).await;
-                let local_port = cfg.local_port.clone();
+                let local_port = cfg.local_port;
                 crate::utils::update_tunnel(state, cfg.service_port, cfg.local_port, Some(cfg))
                     .await;
                 Arc::new(
@@ -79,13 +80,14 @@ impl DevBoxProvider for DockerProvider {
 
     async fn create_devbox(
         &mut self,
+        builder: &str,
         devcontainer: DevBox,
         path: String,
     ) -> Result<String, Box<dyn std::error::Error>> {
         let docker = self.connection.clone();
 
         devcontainer
-            .create_image(path.clone(), docker.clone())
+            .create_image(builder, path.clone(), self.artifactory.clone())
             .await?;
         let id = create(docker.clone(), &devcontainer, &path).await?;
         if devcontainer.start_on_create.unwrap_or(false) {
@@ -122,7 +124,6 @@ impl DevBoxProvider for DockerProvider {
             Ok(()) => (),
             _ => return Err("Fail to delete container".into()),
         };
-        // delete_container(id).await?;
         Ok(())
     }
 
@@ -132,8 +133,6 @@ impl DevBoxProvider for DockerProvider {
             Ok(()) => (),
             _ => return Err("Fail to start container".into()),
         }
-
-        // update_container_status(&id, "running").await?;
         Ok(())
     }
 
@@ -143,7 +142,6 @@ impl DevBoxProvider for DockerProvider {
             Ok(()) => (),
             _ => return Err("Fail to stop container".into()),
         }
-        // update_container_status(&id, "exited").await?;
         Ok(())
     }
 

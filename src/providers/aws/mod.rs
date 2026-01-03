@@ -1,3 +1,4 @@
+use crate::builders;
 use crate::models::DevBox;
 use crate::providers::DevBoxProvider;
 use crate::utils::artifactory::{self, Artifactory};
@@ -30,6 +31,7 @@ impl DevBoxProvider for AwsProvider {
 
     async fn create_devbox(
         &mut self,
+        builder: &str,
         devcontainer: DevBox,
         path: String,
     ) -> Result<String, Box<dyn std::error::Error>> {

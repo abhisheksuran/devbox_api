@@ -32,7 +32,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             {
                 let read_guard = bg_state.read().await;
                 if let Some(ref cur_state) = *read_guard {
-                    container_status_update(cur_state).await;
+                    let _ = container_status_update(cur_state).await;
                 } else {
                     info!("State not yet initialized");
                     sleep(Duration::from_secs(5)).await;

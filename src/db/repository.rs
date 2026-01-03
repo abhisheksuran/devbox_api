@@ -278,3 +278,59 @@ pub async fn list_providers() -> Result<Vec<(String, String)>, Box<dyn std::erro
         Err(_) => Err("Unable to fetch providers list from db".into()),
     }
 }
+
+pub async fn list_builders()
+-> Result<Vec<(String, bool, String, String)>, Box<dyn std::error::Error>> {
+    let conn = DefaultDB::get_db()?;
+    type BuilderRow = Vec<(String, bool, String, String)>;
+    let mut stmt = conn.prepare("SELECT name, remote, builder, config FROM builders")?;
+    let container_iter = stmt.query_map([], |row| {
+        let name: String = row.get(0)?;
+        let remote: bool = row.get(1)?;
+        let builder: String = row.get(2)?;
+        let config: String = row.get(3)?;
+        Ok((name, remote, builder, config))
+    })?;
+
+    let builders: Result<BuilderRow, _> = container_iter.collect();
+    match builders {
+        Ok(c) => Ok(c),
+        Err(_) => Err("Unable to fetch builders list from db".into()),
+    }
+}
+
+pub async fn get_builder(name: &str) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    let conn = DefaultDB::get_db()?;
+    let mut stmt =
+        conn.prepare("SELECT name, remote, builder, config FROM builders WHERE name = ?1")?;
+
+    let builder_json = stmt.query_row(params![name], |row| {
+        let name: String = row.get(0)?;
+        let remote: bool = row.get(1)?;
+        let builder: String = row.get(2)?;
+        let config: String = row.get(3)?;
+        Ok(serde_json::json!({
+
+            "name": name,
+            "remote": remote,
+            "builder": builder,
+            "config": config
+        }))
+    })?;
+    Ok(builder_json)
+}
+
+pub async fn insert_builder(
+    name: &str,
+    remote: u16,
+    builder: &str,
+    config: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let conn = DefaultDB::get_db()?;
+    conn.execute(
+        "INSERT INTO builders (name, remote, builder, config)
+         VALUES (?1, ?2, ?3, ?4)",
+        params![name, remote, builder, config],
+    )?;
+    Ok(())
+}

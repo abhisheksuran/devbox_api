@@ -56,6 +56,7 @@ pub async fn new_devbox(
 
     let provider = params.provider;
     let path_param = params.path;
+    let builder = params.builder;
     let path = path_param.clone();
     // let state = state.clone();
 
@@ -120,7 +121,9 @@ pub async fn new_devbox(
                 }
             };
 
-            if let Err(e) = create_devbox(provider, app_state, devcontainer, path_param).await {
+            if let Err(e) =
+                create_devbox(provider, &builder, app_state, devcontainer, path_param).await
+            {
                 task_log!("Failed to create devbox: {}", e);
             }
         })
