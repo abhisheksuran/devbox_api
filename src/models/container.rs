@@ -50,11 +50,13 @@ impl DevBox {
         path: String,
         artifactory: Option<Artifactory>,
     ) -> Result<String, Box<dyn std::error::Error>> {
-        let mut builder = get_builder_strategy(builder, artifactory).await?;
+        let mut builder = get_builder_strategy(builder, artifactory.clone()).await?;
         builder
             .build(self, &path.trim_end_matches('/').to_string())
             .await?;
-
-        builder.push(&self.name, "latest").await
+        if artifactory.is_some() {
+            builder.push(&self.name, "latest").await?;
+        }
+        Ok(self.name.clone())
     }
 }

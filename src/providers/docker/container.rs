@@ -16,6 +16,7 @@ pub async fn create(
     docker: Arc<Docker>,
     devcontainer: &DevBox,
     path: &String,
+    image: String,
 ) -> Result<String, Box<dyn std::error::Error>> {
     task_log!("Creating container...");
 
@@ -30,7 +31,7 @@ pub async fn create(
     };
 
     let image_config = ContainerCreateBody {
-        image: Some(devcontainer.name.clone()),
+        image: Some(image),
         tty: Some(true),
         attach_stdin: Some(true),
         attach_stdout: Some(true),

@@ -86,10 +86,10 @@ impl DevBoxProvider for DockerProvider {
     ) -> Result<String, Box<dyn std::error::Error>> {
         let docker = self.connection.clone();
 
-        devcontainer
+        let img = devcontainer
             .create_image(builder, path.clone(), self.artifactory.clone())
             .await?;
-        let id = create(docker.clone(), &devcontainer, &path).await?;
+        let id = create(docker.clone(), &devcontainer, &path, img).await?;
         if devcontainer.start_on_create.unwrap_or(false) {
             start(docker.clone(), &id).await?;
         }
