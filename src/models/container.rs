@@ -49,12 +49,12 @@ impl DevBox {
         builder: &str,
         path: String,
         artifactory: Option<Artifactory>,
-    ) -> Result<(), Box<dyn std::error::Error>> {
-        let builder = get_builder_strategy(builder, artifactory).await?;
+    ) -> Result<String, Box<dyn std::error::Error>> {
+        let mut builder = get_builder_strategy(builder, artifactory).await?;
         builder
             .build(self, &path.trim_end_matches('/').to_string())
             .await?;
 
-        Ok(())
+        builder.push(&self.name, "latest").await
     }
 }

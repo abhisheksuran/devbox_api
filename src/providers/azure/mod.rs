@@ -68,14 +68,9 @@ impl DevBoxProvider for AzureProvider {
         let devcontainer_cp = devcontainer.clone();
 
         let docker = Arc::new(Docker::connect_with_local_defaults().unwrap());
-        devcontainer
+        let image = devcontainer
             .create_image(builder, path, Some(self.artifactory.clone()))
             .await?;
-
-        let image = self
-            .artifactory
-            .push_image(&devcontainer.image, "latest")
-            .await;
 
         // Define container group
         let container_group = ContainerGroup {

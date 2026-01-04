@@ -67,7 +67,7 @@ pub async fn update_state(State(state): State<Arc<RwLock<Option<AppState>>>>) ->
             let _ = insert_provider("docker", "").await;
             let _ = insert_provider("azure", "").await;
             let _ = insert_provider("aws", "").await;
-            let _ = insert_builder("builder1", 0, "docker", "").await;
+            let _ = insert_builder("remote1", 1, "docker", "{\"remote_ip\": \"192.168.175.129\",\"service_port\": 2375,\"username\": \"kali\",\"password\": \"kali\",\"local_port\": 2375}").await;
         }
     }
     Response::default()

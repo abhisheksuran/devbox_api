@@ -54,7 +54,7 @@ pub async fn list_artifactory()
     let conn = DefaultDB::get_db()?;
     type ArtifactoryRow = Vec<(String, String, String, String, String, String)>;
     let mut stmt = conn.prepare(
-        "SELECT provider, server, repository, user, password, config FROM artifactories",
+        "SELECT provider, server, repository_name, username, password, config FROM artifactories",
     )?;
     let aartifactory_iter = stmt.query_map([], |row| {
         let provider: String = row.get(0)?;
@@ -83,7 +83,7 @@ pub async fn insert_artifactory(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let conn = DefaultDB::get_db()?;
     conn.execute(
-        "INSERT INTO artifactories (provider, server, repository, user, password, config)
+        "INSERT INTO artifactories (provider, server, repository_name, username, password, config)
          VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
         params![provider, server, repository, user, password, config],
     )?;
@@ -100,7 +100,7 @@ pub async fn update_artifactory(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let conn = DefaultDB::get_db()?;
     conn.execute(
-        "UPDATE artifactories SET  server = ?2, repository = ?3, user = ?4, password = ?5, config = ?6 WHERE provider = ?1",
+        "UPDATE artifactories SET  server = ?2, repository_name = ?3, username = ?4, password = ?5, config = ?6 WHERE provider = ?1",
         rusqlite::params![provider, server, repository, user, password, config],
     )?;
     Ok(())
@@ -119,7 +119,7 @@ pub async fn get_latest_config()
 -> Result<Vec<(String, serde_json::Value, Artifactory)>, Box<dyn std::error::Error>> {
     let conn: rusqlite::Connection = DefaultDB::get_db()?;
     type DataRow = Vec<(String, serde_json::Value, Artifactory)>;
-    let mut stmt = conn.prepare("SELECT p.name, p.config, a.server, a.repository, a.user, a.password  FROM providers as p INNER JOIN artifactories as a ON p.name = a.provider")?;
+    let mut stmt = conn.prepare("SELECT p.name, p.config, a.server, a.repository_name, a.username, a.password  FROM providers as p INNER JOIN artifactories as a ON p.name = a.provider")?;
     let container_iter = stmt.query_map([], |row| {
         let provider: String = row.get(0)?;
         let config: String = row.get(1)?;

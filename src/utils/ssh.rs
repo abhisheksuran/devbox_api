@@ -92,7 +92,7 @@ pub trait Remote {
     }
 
     async fn disconnect(
-        session: russh::client::Handle<Client>,
+        session: Arc<russh::client::Handle<Client>>,
     ) -> Result<(), Box<dyn std::error::Error>> {
         session
             .disconnect(russh::Disconnect::ByApplication, "Closing session", "")
@@ -163,6 +163,7 @@ pub trait Remote {
             tokio::select! {
                 _ = cancel.cancelled() => {
                     println!("Tunnel cancelled");
+                    break;
                 }
                 res = listener.accept() => {
                     if let Ok((mut socket, _)) = res {

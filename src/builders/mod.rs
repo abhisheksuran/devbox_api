@@ -5,18 +5,24 @@ use crate::utils::artifactory::Artifactory;
 
 #[async_trait::async_trait]
 pub trait Builder {
-    async fn build(
-        &self,
-        devcontainer: &DevBox,
-        path: &String,
-    ) -> Result<(), Box<dyn std::error::Error>>;
-
     async fn init(
         name: &str,
         artifactory: Option<Artifactory>,
     ) -> Result<Self, Box<dyn std::error::Error>>
     where
         Self: Sized;
+
+    async fn build(
+        &self,
+        devcontainer: &DevBox,
+        path: &String,
+    ) -> Result<(), Box<dyn std::error::Error>>;
+
+    async fn push(
+        &mut self,
+        devbox_image: &str,
+        tag: &str,
+    ) -> Result<String, Box<dyn std::error::Error>>;
 }
 
 pub async fn get_builder_strategy(

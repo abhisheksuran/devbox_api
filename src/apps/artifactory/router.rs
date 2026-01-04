@@ -61,7 +61,13 @@ pub async fn add_artifactory(
         .is_ok();
     if success {
         update_appstate(state).await;
-    };
+    } else {
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "FAILED TO UPDATE ARIFACTORY",
+        ));
+    }
+    Ok(())
 }
 
 pub async fn modify_artifactory(

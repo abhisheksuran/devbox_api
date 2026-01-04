@@ -6,22 +6,77 @@ use crate::utils::Remote;
 use crate::utils::TunnelConfig;
 use crate::utils::artifactory::Artifactory;
 use crate::utils::{feature_to_dockerfile, get_docker_file};
+use bollard::auth::DockerCredentials;
+use bollard::query_parameters::PushImageOptions;
+use bollard::query_parameters::TagImageOptions;
 use http_body_util::Full;
+use russh::client::Handle;
+use std::collections::HashMap;
 use std::io::Write;
 use std::path::Path;
 use std::sync::Arc;
 use tokio_stream::StreamExt;
 use tokio_util::sync::CancellationToken;
+use tracing::info;
 
+type BuilderTunnel = Option<(
+    Option<tokio::task::JoinHandle<()>>,
+    Option<CancellationToken>,
+    Option<Arc<Handle<crate::utils::Client>>>,
+)>;
 pub struct DockerBuilder {
     pub connection: bollard::Docker,
     pub config: Option<TunnelConfig>,
     pub artifactory: Option<Artifactory>,
-    pub tunnel: Option<(tokio::task::JoinHandle<()>, CancellationToken)>,
+    pub tunnel: BuilderTunnel,
 }
 
 #[async_trait::async_trait]
 impl Remote for DockerBuilder {}
+
+impl DockerBuilder {
+    async fn get_auth(&self) -> Option<DockerCredentials> {
+        match self.artifactory.clone() {
+            Some(art) => Some(DockerCredentials {
+                username: art.username,
+                password: art.password,
+                auth: None,
+                email: None,
+                serveraddress: Some(art.server),
+                identitytoken: None,
+                registrytoken: None,
+            }),
+            None => None,
+        }
+    }
+    async fn get_auth_hash(&self) -> Option<HashMap<String, DockerCredentials>> {
+        match self.artifactory.clone() {
+            Some(art) => {
+                let mut creds_map = HashMap::new();
+                creds_map.insert(
+                    art.server.clone(),
+                    DockerCredentials {
+                        username: art.username,
+                        password: art.password,
+                        serveraddress: Some(art.server),
+                        ..Default::default()
+                    },
+                );
+                Some(creds_map)
+            }
+            None => None,
+        }
+    }
+
+    pub async fn stop_tunnel(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        if let Some((mut handle, cancel, session)) = self.tunnel.take() {
+            cancel.unwrap().cancel();
+            handle.unwrap().await?;
+            DockerBuilder::disconnect(session.unwrap()).await?;
+        }
+        Ok(())
+    }
+}
 
 #[async_trait::async_trait]
 impl Builder for DockerBuilder {
@@ -47,16 +102,23 @@ impl Builder for DockerBuilder {
         {
             let builder_cfg: TunnelConfig = builder_data
                 .get("config")
-                .and_then(|v| serde_json::from_value(v.clone()).ok())
+                .map(|v| {
+                    if let Some(s) = v.as_str() {
+                        serde_json::from_str(s).unwrap()
+                    } else {
+                        serde_json::from_value(v.clone()).unwrap()
+                    }
+                })
                 .unwrap();
             let mut cancel: Option<CancellationToken> = None;
             let mut handel: Option<tokio::task::JoinHandle<()>> = None;
+            let mut ssh_session: Option<Arc<Handle<crate::utils::Client>>> = None;
             if !DockerBuilder::check_port("127.0.0.1", builder_cfg.local_port as u16, None).await {
-                let ssh_session = DockerBuilder::connect(builder_cfg.clone()).await?;
+                ssh_session = Some(Arc::new(DockerBuilder::connect(builder_cfg.clone()).await?));
 
                 cancel = Some(CancellationToken::new());
                 handel = Some(tokio::spawn(DockerBuilder::run_tunnel(
-                    Arc::new(ssh_session),
+                    ssh_session.clone().unwrap(),
                     builder_cfg.service_port,
                     builder_cfg.local_port,
                     cancel.clone().unwrap(),
@@ -69,14 +131,15 @@ impl Builder for DockerBuilder {
                 bollard::API_DEFAULT_VERSION,
             )
             .unwrap();
-
+            info!("Using Rmote Docker Builder");
             Ok(DockerBuilder {
                 connection: docker_con,
                 config: Some(builder_cfg),
                 artifactory,
-                tunnel: Some((handel.unwrap(), cancel.unwrap())),
+                tunnel: Some((handel, cancel, ssh_session)),
             })
         } else {
+            info!("Using Local Docker Builder");
             let docker_local = bollard::Docker::connect_with_defaults().unwrap();
             Ok(DockerBuilder {
                 connection: docker_local,
@@ -145,7 +208,7 @@ impl Builder for DockerBuilder {
         task_log!("Building image..");
         let mut image_build_stream = self.connection.build_image(
             build_image_options.build(),
-            None,
+            self.get_auth_hash().await,
             Some(http_body_util::Either::Left(Full::new(compressed.into()))),
         );
 
@@ -171,5 +234,53 @@ impl Builder for DockerBuilder {
             }
         }
         Ok(())
+    }
+
+    async fn push(
+        &mut self,
+        devbox_image: &str,
+        tag: &str,
+    ) -> Result<String, Box<dyn std::error::Error>> {
+        // Initialize Docker client
+        let docker = &self.connection;
+        let artifactory = self.artifactory.clone().unwrap();
+        // Define the image name and tag
+        let image_name = format!(
+            "{}/{}/{}",
+            artifactory.server, artifactory.repository_name, devbox_image
+        );
+
+        task_log!("Tagging image");
+        let tag_options = TagImageOptions {
+            repo: Some(image_name.clone()),
+            tag: Some("latest".to_string()),
+        };
+
+        match docker.tag_image(devbox_image, Some(tag_options)).await {
+            Ok(_) => task_log!("Image tagged successfully"),
+            Err(e) => task_log!("Failed to tag image: {}", e),
+        }
+        task_log!("Tagging completed");
+        // Set up authentication credentials for Artifactory
+        let credentials = self.get_auth().await;
+
+        // Push image options
+        let push_options = PushImageOptions {
+            tag: Some(tag.to_string()),
+            ..Default::default()
+        };
+
+        // Push the image
+        let mut stream = docker.push_image(&image_name, Some(push_options), credentials);
+
+        // Stream the output
+        while let Some(output) = stream.next().await {
+            match output {
+                Ok(log) => task_log!("{:?}", log),
+                Err(e) => task_log!("Error: {}", e),
+            }
+        }
+        self.stop_tunnel().await;
+        Ok(image_name)
     }
 }
