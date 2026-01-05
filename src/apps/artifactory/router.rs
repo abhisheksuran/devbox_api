@@ -22,28 +22,6 @@ pub struct ArtifactoryMod {
     config: String,
 }
 
-// pub async fn add_artifactory(
-//     State(state): State<Arc<RwLock<Option<AppState>>>>,
-//     Json(data): Json<ArtifactoryMod>,
-// ) -> impl IntoResponse {
-//     match insert_artifactory(
-//         &data.provider,
-//         &data.server,
-//         &data.repository_name,
-//         &data.username,
-//         &data.password,
-//         &data.config,
-//     )
-//     .await
-//     {
-//         Ok(_) => {
-//             let _ = update_appstate(state).await;
-//             return Ok(Json(serde_json::json!({"MSG": "SUCCESS"})));
-//         }
-//         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, format!("ERROR: {e}"))),
-//     }
-// }
-
 pub async fn add_artifactory(
     State(state): State<Arc<RwLock<Option<AppState>>>>,
     Json(data): Json<ArtifactoryMod>,
@@ -61,13 +39,13 @@ pub async fn add_artifactory(
         .is_ok();
     if success {
         update_appstate(state).await;
+        Ok((StatusCode::OK, "SUCCESS"))
     } else {
-        return Err((
+        Err((
             StatusCode::INTERNAL_SERVER_ERROR,
-            "FAILED TO UPDATE ARIFACTORY",
-        ));
+            "FAILED TO ADD ARIFACTORY",
+        ))
     }
-    Ok(())
 }
 
 pub async fn modify_artifactory(
@@ -86,7 +64,13 @@ pub async fn modify_artifactory(
     .is_ok();
     if success {
         update_appstate(state).await;
-    };
+        Ok((StatusCode::OK, "SUCCESS"))
+    } else {
+        Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "FAILED TO UPDATE ARIFACTORY",
+        ))
+    }
 }
 
 pub async fn remove_artifactory(
@@ -98,7 +82,13 @@ pub async fn remove_artifactory(
         .is_ok();
     if success {
         update_appstate(state).await;
-    };
+        Ok((StatusCode::OK, "SUCCESS"))
+    } else {
+        Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "FAILED TO REMOVE ARIFACTORY",
+        ))
+    }
 }
 
 pub async fn list_all_artifactory() -> impl IntoResponse {
