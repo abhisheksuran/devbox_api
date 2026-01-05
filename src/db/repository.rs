@@ -1,13 +1,7 @@
 use crate::db::DefaultDB;
 use crate::providers::ProviderEnum;
-use crate::providers::aws::AwsProvider;
-use crate::providers::azure::AzureProvider;
-use crate::providers::docker::DockerProvider;
-use crate::utils::artifactory::{self, Artifactory};
-use azure_identity::AzureDeveloperCliCredential;
+use crate::utils::artifactory::Artifactory;
 use rusqlite::params;
-use tracing::info;
-use utoipa::openapi::security::Password;
 
 pub async fn get_provider_and_id(
     id: &String,
@@ -332,5 +326,11 @@ pub async fn insert_builder(
          VALUES (?1, ?2, ?3, ?4)",
         params![name, remote, builder, config],
     )?;
+    Ok(())
+}
+
+pub async fn delete_builder(builder: &str) -> Result<(), Box<dyn std::error::Error>> {
+    let conn = DefaultDB::get_db()?;
+    conn.execute("DELETE FROM builders WHERE name = ?", params![builder])?;
     Ok(())
 }

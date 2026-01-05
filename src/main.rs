@@ -1,4 +1,5 @@
 use apps::artifactory::artifacotry_routes;
+use apps::builder::builder_routes;
 use apps::config::config_routes;
 use apps::devbox::devbox_routes;
 use apps::provider::provider_routes;
@@ -59,6 +60,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .nest("/devbox", devbox_routes(app_state.clone()))
         .nest("/artifactories", artifacotry_routes(app_state.clone()))
         .nest("/providers", provider_routes(app_state.clone()))
+        .nest("/builders", builder_routes(app_state.clone()))
         .nest("/config", config_routes(app_state.clone()))
         // OpenAPI JSON
         .route(
