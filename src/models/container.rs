@@ -55,7 +55,7 @@ impl DevBox {
             .build(self, &path.trim_end_matches('/').to_string())
             .await?;
         if artifactory.is_some() {
-            builder.push(&self.name, "latest").await?;
+            return builder.push(&self.name, "latest").await;
         }
         Ok(self.name.clone())
     }

@@ -1,8 +1,9 @@
 mod action;
 mod container;
 
-use crate::builders::docker::DockerBuilder;
-use crate::db::get_builder;
+use bollard::auth::DockerCredentials;
+use futures_util::stream::TryStreamExt;
+
 use crate::models::DevBox;
 use crate::providers::DevBoxProvider;
 use crate::task_log;
@@ -10,8 +11,10 @@ use crate::utils::{Remote, TunnelConfig};
 use crate::{logs::ASYNC_TASK_ID, utils::artifactory::Artifactory};
 pub use action::handle_exec_stream;
 use bollard::Docker;
+use bollard::query_parameters::CreateImageOptionsBuilder;
 use container::{create, exec, remove, start, status, stop};
 use std::sync::Arc;
+use tokio::time::{Duration, sleep};
 
 #[derive(Clone, serde::Deserialize, serde::Serialize)]
 pub struct DockerProviderMod {
@@ -67,6 +70,36 @@ impl DockerProvider {
             }
         }
     }
+
+    pub async fn pull_image(
+        &self,
+        image_url: &str,
+        tag: &str,
+    ) -> Result<String, Box<dyn std::error::Error>> {
+        let (_, repo_image) = image_url.split_once('/').unwrap();
+        let params = CreateImageOptionsBuilder::new()
+            .from_image(repo_image)
+            .tag(tag)
+            .build();
+        let art = self.artifactory.clone().unwrap();
+        let creds = DockerCredentials {
+            username: art.username,
+            password: art.password,
+            serveraddress: Some(art.server),
+            ..Default::default()
+        };
+        let docker = self.connection.clone();
+        let mut stream = docker.create_image(Some(params), None, Some(creds));
+
+        while let Some(info) = stream.try_next().await? {
+            println!("{:?}", info.status);
+            if let Some(err) = &info.error {
+                eprintln!("Image pull failed: {}", err);
+                return Err(Box::<dyn std::error::Error>::from(err.clone()));
+            }
+        }
+        Ok(repo_image.to_string())
+    }
 }
 
 #[async_trait::async_trait]
@@ -86,9 +119,13 @@ impl DevBoxProvider for DockerProvider {
     ) -> Result<String, Box<dyn std::error::Error>> {
         let docker = self.connection.clone();
 
-        let img = devcontainer
+        let mut img = devcontainer
             .create_image(builder, path.clone(), self.artifactory.clone())
             .await?;
+        if self.artifactory.is_some() {
+            img = self.pull_image(&img, "latest").await?;
+        }
+        sleep(Duration::from_secs(10)).await;
         let id = create(docker.clone(), &devcontainer, &path, img).await?;
         if devcontainer.start_on_create.unwrap_or(false) {
             start(docker.clone(), &id).await?;
