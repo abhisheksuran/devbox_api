@@ -1,4 +1,5 @@
-use crate::db::DefaultDB;
+use crate::apps::artifactory;
+use crate::db::{DefaultDB, repository};
 use crate::providers::ProviderEnum;
 use crate::utils::artifactory::Artifactory;
 use rusqlite::params;
@@ -110,19 +111,24 @@ pub async fn delete_artifactory(provider: &str) -> Result<(), Box<dyn std::error
 }
 
 pub async fn get_latest_config()
--> Result<Vec<(String, serde_json::Value, Artifactory)>, Box<dyn std::error::Error>> {
+-> Result<Vec<(String, serde_json::Value, Option<Artifactory>)>, Box<dyn std::error::Error>> {
     let conn: rusqlite::Connection = DefaultDB::get_db()?;
-    type DataRow = Vec<(String, serde_json::Value, Artifactory)>;
-    let mut stmt = conn.prepare("SELECT p.name, p.config, a.server, a.repository_name, a.username, a.password  FROM providers as p INNER JOIN artifactories as a ON p.name = a.provider")?;
+    type DataRow = Vec<(String, serde_json::Value, Option<Artifactory>)>;
+    let mut stmt = conn.prepare("SELECT p.name, p.config, a.server, a.repository_name, a.username, a.password  FROM providers as p LEFT JOIN artifactories as a ON p.name = a.provider")?;
     let container_iter = stmt.query_map([], |row| {
         let provider: String = row.get(0)?;
         let config: String = row.get(1)?;
         let config_json = serde_json::to_value(config).unwrap();
-        let artifactory = Artifactory {
-            server: row.get(2)?,
-            repository_name: row.get(3)?,
-            username: row.get(4)?,
-            password: row.get(5)?,
+        let server: Option<String> = row.get(2).ok();
+        let repository: Option<String> = row.get(3).ok();
+        let mut artifactory: Option<Artifactory> = None;
+        if server.is_some() && repository.is_some() {
+            artifactory = Some(Artifactory {
+                server: row.get(2)?,
+                repository_name: row.get(3)?,
+                username: row.get(4)?,
+                password: row.get(5)?,
+            })
         };
 
         Ok((provider, config_json, artifactory))
@@ -131,7 +137,7 @@ pub async fn get_latest_config()
     let provider_data: Result<DataRow, _> = container_iter.collect();
     match provider_data {
         Ok(data) => Ok(data),
-        Err(_) => Err("Unable to fetch container list from db".into()),
+        Err(e) => Err(format!("Unable to fetch container list from db: {}", e).into()),
     }
 }
 

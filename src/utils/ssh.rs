@@ -54,7 +54,7 @@ pub trait Remote {
     ) -> Result<client::Handle<Client>, Box<dyn std::error::Error>> {
         let config = russh::client::Config::default();
         let sh = Client {};
-        let mut session = russh::client::connect(
+        let mut session = match russh::client::connect(
             Arc::new(config),
             (
                 tunnel_cfg.remote_ip.as_str(),
@@ -63,7 +63,10 @@ pub trait Remote {
             sh,
         )
         .await
-        .unwrap();
+        {
+            Ok(sess) => sess,
+            Err(_) => return Err(Box::new(std::io::Error::other("FAIL TO CONNECT TO SSH"))),
+        };
 
         let condition = if tunnel_cfg.private_key.is_some() {
             let ssh_key = load_secret_key(

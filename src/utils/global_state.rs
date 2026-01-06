@@ -90,18 +90,19 @@ pub async fn update_appstate(app_state: Arc<RwLock<Option<AppState>>>) {
     let mut docker_opt: Option<DockerProviderMod> = None;
 
     for (provider, cfg, art) in provider_data {
+        info!("{:?}", provider);
         match provider.as_str() {
             "azure" => {
-                azure_opt = if cfg != "" {
-                    Some(AzureProvider::new(cfg, art))
+                azure_opt = if cfg != "" && art.is_some() {
+                    Some(AzureProvider::new(cfg, art.unwrap()))
                 } else {
                     None
                 }
             }
 
             "aws" => {
-                aws_opt = if cfg != "" {
-                    Some(AwsProvider::new(cfg, art))
+                aws_opt = if cfg != "" && art.is_some() {
+                    Some(AwsProvider::new(cfg, art.unwrap()))
                 } else {
                     None
                 }
@@ -111,7 +112,7 @@ pub async fn update_appstate(app_state: Arc<RwLock<Option<AppState>>>) {
                 let config: Option<TunnelConfig> = serde_json::from_str(&config_string).ok();
 
                 docker_opt = Some(DockerProviderMod {
-                    artifactory: Some(art),
+                    artifactory: art,
                     remote: config,
                 })
             }
@@ -119,14 +120,18 @@ pub async fn update_appstate(app_state: Arc<RwLock<Option<AppState>>>) {
         }
     }
 
-    let docker_conn =
+    let mut docker_conn =
         DockerProvider::refresh_connection(app_state.clone(), docker_opt.clone().unwrap().remote)
-            .await;
+            .await
+            .ok();
+    if docker_conn.is_none() {
+        docker_conn = Some(Arc::new(bollard::Docker::connect_with_defaults().unwrap()));
+    }
 
     if let Some(old_state) = previous_state {
         let new_state = AppState {
             docker: DockerProvider::new(
-                docker_conn,
+                docker_conn.unwrap(),
                 docker_opt.clone().unwrap().artifactory,
                 docker_opt.unwrap().remote,
             ),
@@ -145,7 +150,7 @@ pub async fn update_tunnel(
     new_remote: u32,
     new_local: u32,
     session_refresh: Option<TunnelConfig>,
-) -> String {
+) -> Result<String, Box<dyn std::error::Error>> {
     // take out old state
     let previous_state = {
         let mut guard = state.write().await;
@@ -176,13 +181,13 @@ pub async fn update_tunnel(
             let mut guard = state.write().await;
             *guard = Some(new_state);
         }
-        return "SUCCESS".to_string();
+        return Ok("SUCCESS".to_string());
     }
 
     // create new session if requested
     let (session, new_session_arc) = match session_refresh {
         Some(cfg) => {
-            let session = DockerProvider::connect(cfg).await.expect("connect failed");
+            let session = DockerProvider::connect(cfg).await?;
             let arc_session = Arc::new(session);
             (arc_session.clone(), Some(arc_session))
         }
@@ -223,5 +228,7 @@ pub async fn update_tunnel(
         *guard = Some(new_state);
     }
 
-    format!("Tunnel updated: local {new_local} -> remote {new_remote}")
+    Ok(format!(
+        "Tunnel updated: local {new_local} -> remote {new_remote}"
+    ))
 }
