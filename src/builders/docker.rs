@@ -280,7 +280,7 @@ impl Builder for DockerBuilder {
                 Err(e) => task_log!("Error: {}", e),
             }
         }
-        self.stop_tunnel().await;
+        let _ = self.stop_tunnel().await;
         Ok(image_name)
     }
 }

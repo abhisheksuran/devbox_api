@@ -39,12 +39,13 @@ pub async fn add_artifactory(
         .is_ok();
     if success {
         update_appstate(state).await;
-        Ok((StatusCode::OK, "SUCCESS"))
+        (StatusCode::OK, "SUCCESS").into_response()
     } else {
-        Err((
+        (
             StatusCode::INTERNAL_SERVER_ERROR,
             "FAILED TO ADD ARIFACTORY",
-        ))
+        )
+            .into_response()
     }
 }
 
@@ -64,12 +65,13 @@ pub async fn modify_artifactory(
     .is_ok();
     if success {
         update_appstate(state).await;
-        Ok((StatusCode::OK, "SUCCESS"))
+        (StatusCode::OK, "SUCCESS").into_response()
     } else {
-        Err((
+        (
             StatusCode::INTERNAL_SERVER_ERROR,
             "FAILED TO UPDATE ARIFACTORY",
-        ))
+        )
+            .into_response()
     }
 }
 
@@ -82,18 +84,19 @@ pub async fn remove_artifactory(
         .is_ok();
     if success {
         update_appstate(state).await;
-        Ok((StatusCode::OK, "SUCCESS"))
+        (StatusCode::OK, "SUCCESS").into_response()
     } else {
-        Err((
+        (
             StatusCode::INTERNAL_SERVER_ERROR,
             "FAILED TO REMOVE ARIFACTORY",
-        ))
+        )
+            .into_response()
     }
 }
 
 pub async fn list_all_artifactory() -> impl IntoResponse {
     match list_artifactory().await {
-        Ok(data) => Ok(Json(data)),
-        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, format!("FAILED: {e}"))),
+        Ok(data) => (StatusCode::OK, Json(data)).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, format!("FAILED: {e}")).into_response(),
     }
 }

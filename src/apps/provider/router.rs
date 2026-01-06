@@ -18,6 +18,23 @@ pub struct ProviderMod {
     config: serde_json::Value,
 }
 
+#[derive(Clone, serde::Deserialize, serde::Serialize)]
+pub struct AzureMod {
+    tanent: String,
+    subscription: String,
+    token: String,
+    location: String,
+    resource_group: String,
+    address_type: Option<String>,
+}
+
+#[derive(Clone, serde::Deserialize, serde::Serialize)]
+pub struct AwsMod {
+    access_key: String,
+    secret_key: String,
+    region: String,
+}
+
 pub async fn add_provider(
     State(state): State<Arc<RwLock<Option<AppState>>>>,
     Json(data): Json<ProviderMod>,
@@ -26,9 +43,9 @@ pub async fn add_provider(
         (insert_provider(&data.provider.to_string(), &data.config.to_string()).await).is_ok();
     if success {
         update_appstate(state).await;
-        Ok((StatusCode::OK, "SUCCESS"))
+        (StatusCode::OK, "SUCCESS").into_response()
     } else {
-        Err((StatusCode::INTERNAL_SERVER_ERROR, "FAILED TO ADD PROVIDER"))
+        (StatusCode::INTERNAL_SERVER_ERROR, "FAILED TO ADD PROVIDER").into_response()
     }
 }
 
@@ -41,12 +58,70 @@ pub async fn modify_providers(
         .is_ok();
     if success {
         update_appstate(state).await;
-        Ok((StatusCode::OK, "SUCCESS"))
+        (StatusCode::OK, "SUCCESS").into_response()
     } else {
-        Err((
+        (
             StatusCode::INTERNAL_SERVER_ERROR,
             "FAILED TO UPDATE PROVIDER",
-        ))
+        )
+            .into_response()
+    }
+}
+
+pub async fn update_azure(
+    State(state): State<Arc<RwLock<Option<AppState>>>>,
+    Json(data): Json<AzureMod>,
+) -> impl IntoResponse {
+    let success = update_provider_db("azure", serde_json::to_string(&data).unwrap())
+        .await
+        .is_ok();
+    if success {
+        update_appstate(state).await;
+        (StatusCode::OK, "SUCCESS").into_response()
+    } else {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "FAILED TO UPDATE PROVIDER",
+        )
+            .into_response()
+    }
+}
+
+pub async fn update_docker(
+    State(state): State<Arc<RwLock<Option<AppState>>>>,
+    Json(data): Json<crate::utils::TunnelConfig>,
+) -> impl IntoResponse {
+    let success = update_provider_db("docker", serde_json::to_string(&data).unwrap())
+        .await
+        .is_ok();
+    if success {
+        update_appstate(state).await;
+        (StatusCode::OK, "SUCCESS").into_response()
+    } else {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "FAILED TO UPDATE PROVIDER",
+        )
+            .into_response()
+    }
+}
+
+pub async fn update_aws(
+    State(state): State<Arc<RwLock<Option<AppState>>>>,
+    Json(data): Json<AwsMod>,
+) -> impl IntoResponse {
+    let success = update_provider_db("aws", serde_json::to_string(&data).unwrap())
+        .await
+        .is_ok();
+    if success {
+        update_appstate(state).await;
+        (StatusCode::OK, "SUCCESS").into_response()
+    } else {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "FAILED TO UPDATE PROVIDER",
+        )
+            .into_response()
     }
 }
 
@@ -59,18 +134,19 @@ pub async fn remove_provider(
         .is_ok();
     if success {
         update_appstate(state).await;
-        Ok((StatusCode::OK, "SUCCESS"))
+        (StatusCode::OK, "SUCCESS").into_response()
     } else {
-        Err((
+        (
             StatusCode::INTERNAL_SERVER_ERROR,
             "FAILED TO REMOVE PROVIDER",
-        ))
+        )
+            .into_response()
     }
 }
 
 pub async fn list_all_providers() -> impl IntoResponse {
     match list_providers().await {
-        Ok(data) => Ok((StatusCode::OK, Json(data))),
-        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, format!("FAILED: {e}"))),
+        Ok(data) => (StatusCode::OK, Json(data)).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, format!("FAILED: {e}")).into_response(),
     }
 }

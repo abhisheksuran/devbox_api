@@ -20,7 +20,7 @@ Devbox (written in Rust) is similar to devcontainer but devbox can be deployed o
 - `/devbox/{id}?action=start|stop|delete`: Start/Stop/Delete container.
 - `/artifactories/`: Add, Remove, Modify and List artifactories.
 - `/providers/`: Modify, List providers. 
-- `/builders/`: Need to add endpoints for this.
+- `/builders/`: Add, Remove, List Builders.
 - `/config/edit`: API routes for configuration management for anonymous user
 - `/config/provider/docker|azure|aws/edit`: Endpoint to configure specific provider.
 - `/ws/docker/{id}`: Websocket endpoint to get interactive shell with container.

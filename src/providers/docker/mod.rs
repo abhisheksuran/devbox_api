@@ -49,24 +49,23 @@ impl DockerProvider {
     pub async fn refresh_connection(
         state: Arc<tokio::sync::RwLock<Option<crate::utils::AppState>>>,
         remote: Option<TunnelConfig>,
-    ) -> Arc<Docker> {
+    ) -> Result<Arc<Docker>, Box<dyn std::error::Error>> {
         match remote.clone() {
             Some(cfg) => {
                 let local_port = cfg.local_port;
                 crate::utils::update_tunnel(state, cfg.service_port, cfg.local_port, Some(cfg))
-                    .await;
-                Arc::new(
-                    bollard::Docker::connect_with_http(
-                        format!("127.0.0.1:{}", local_port).as_str(),
-                        10,
-                        bollard::API_DEFAULT_VERSION,
-                    )
-                    .unwrap(),
-                )
+                    .await?;
+                Ok(Arc::new(bollard::Docker::connect_with_http(
+                    format!("127.0.0.1:{}", local_port).as_str(),
+                    10,
+                    bollard::API_DEFAULT_VERSION,
+                )?))
             }
             None => {
-                crate::utils::update_tunnel(state, 0, 0, None).await;
-                Arc::new(bollard::Docker::connect_with_local_defaults().unwrap())
+                crate::utils::update_tunnel(state, 0, 0, None).await?;
+                Ok(Arc::new(
+                    bollard::Docker::connect_with_local_defaults().unwrap(),
+                ))
             }
         }
     }
