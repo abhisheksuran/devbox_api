@@ -2,8 +2,9 @@ pub mod model;
 mod router;
 
 pub use router::{
-    add_provider, list_all_providers, modify_providers, remove_provider, update_aws, update_azure,
-    update_docker,
+    __path_list_all_providers, __path_modify_providers, __path_update_aws, __path_update_azure,
+    __path_update_docker, add_provider, list_all_providers, modify_providers, remove_provider,
+    update_aws, update_azure, update_docker,
 };
 
 pub use crate::utils::AppState;

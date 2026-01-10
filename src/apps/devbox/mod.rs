@@ -5,8 +5,8 @@ mod router;
 pub use handler::*;
 pub use model::*;
 pub use router::{
-    __path_action_on_devbox, __path_get_task_logs, __path_list_all_devbox, __path_new_devbox,
-    action_on_devbox, get_details, get_task_logs, list_all_devbox, new_devbox,
+    __path_action_on_devbox, __path_get_details, __path_get_task_logs, __path_list_all_devbox,
+    __path_new_devbox, action_on_devbox, get_details, get_task_logs, list_all_devbox, new_devbox,
     websocket_exec_handler,
 };
 

@@ -6,7 +6,11 @@ use axum::{
     routing::{delete, get, patch, post},
 };
 pub use model::Artifactory;
-pub use router::{add_artifactory, list_all_artifactory, modify_artifactory, remove_artifactory};
+pub use router::{
+    __path_add_artifactory, __path_list_all_artifactory, __path_modify_artifactory,
+    __path_remove_artifactory, add_artifactory, list_all_artifactory, modify_artifactory,
+    remove_artifactory,
+};
 // use router::add_artifactory;
 use tokio::sync::RwLock;
 

@@ -6,8 +6,8 @@ pub struct Artifactory {
     pub password: Option<String>,
 }
 
-#[derive(Clone, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, serde::Deserialize, serde::Serialize, utoipa::ToSchema)]
 pub struct ArtifactoryMod {
-    pub provider: String,
+    pub provider: crate::providers::ProviderEnum,
     pub config: Artifactory,
 }

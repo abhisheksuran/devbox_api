@@ -1,7 +1,10 @@
 pub mod model;
 mod router;
 
-pub use router::{add_builder, list_all_builders, remove_builder};
+pub use router::{
+    __path_add_builder, __path_list_all_builders, __path_remove_builder, add_builder,
+    list_all_builders, remove_builder,
+};
 
 pub use crate::utils::AppState;
 use axum::{

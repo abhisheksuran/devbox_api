@@ -44,11 +44,11 @@ pub async fn insert_task(
 }
 
 pub async fn list_artifactory()
--> Result<Vec<(String, String, String, String, String, String)>, Box<dyn std::error::Error>> {
+-> Result<Vec<(String, String, String, String, String)>, Box<dyn std::error::Error>> {
     let conn = DefaultDB::get_db()?;
-    type ArtifactoryRow = Vec<(String, String, String, String, String, String)>;
+    type ArtifactoryRow = Vec<(String, String, String, String, String)>;
     let mut stmt = conn.prepare(
-        "SELECT provider, server, repository_name, username, password, config FROM artifactories",
+        "SELECT provider, server, repository_name, username, password FROM artifactories",
     )?;
     let aartifactory_iter = stmt.query_map([], |row| {
         let provider: String = row.get(0)?;
@@ -56,8 +56,7 @@ pub async fn list_artifactory()
         let repository: String = row.get(2)?;
         let user: String = row.get(3)?;
         let password: String = row.get(4)?;
-        let config: String = row.get(5)?;
-        Ok((provider, server, repository, user, password, config))
+        Ok((provider, server, repository, user, password))
     })?;
 
     let artifactories: Result<ArtifactoryRow, _> = aartifactory_iter.collect();
@@ -74,7 +73,7 @@ pub async fn insert_artifactory(
     let conn = DefaultDB::get_db()?;
     conn.execute(
         "INSERT INTO artifactories (provider, server, repository_name, username, password)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+         VALUES (?1, ?2, ?3, ?4, ?5)",
         params![
             provider,
             config.server,

@@ -19,6 +19,8 @@ mod logs;
 mod models;
 mod openapi;
 mod providers;
+#[cfg(test)]
+mod tests;
 mod utils;
 
 #[tokio::main]

@@ -14,7 +14,7 @@ pub enum ProviderEnum {
     Azure,
     Aws,
 }
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 pub struct ProviderModQuery {
     pub provider: ProviderEnum,
 }
