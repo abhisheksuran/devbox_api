@@ -8,7 +8,7 @@ use crate::models::DevBox;
 use crate::providers::DevBoxProvider;
 use crate::task_log;
 use crate::utils::{Remote, TunnelConfig};
-use crate::{logs::ASYNC_TASK_ID, utils::artifactory::Artifactory};
+use crate::{apps::artifactory::Artifactory, logs::ASYNC_TASK_ID};
 pub use action::handle_exec_stream;
 use bollard::Docker;
 use bollard::query_parameters::CreateImageOptionsBuilder;

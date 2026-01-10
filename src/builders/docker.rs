@@ -1,10 +1,10 @@
+use crate::apps::artifactory::Artifactory;
 use crate::builders::Builder;
 use crate::db::get_builder;
 use crate::models::DevBox;
 use crate::task_log;
 use crate::utils::Remote;
 use crate::utils::TunnelConfig;
-use crate::utils::artifactory::Artifactory;
 use crate::utils::{feature_to_dockerfile, get_docker_file};
 use bollard::auth::DockerCredentials;
 use bollard::query_parameters::PushImageOptions;

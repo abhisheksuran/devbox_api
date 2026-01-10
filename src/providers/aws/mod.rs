@@ -1,7 +1,6 @@
-use crate::builders;
+use crate::apps::artifactory::Artifactory;
 use crate::models::DevBox;
 use crate::providers::DevBoxProvider;
-use crate::utils::artifactory::{self, Artifactory};
 mod container;
 
 #[derive(Clone, serde::Deserialize, serde::Serialize, utoipa::ToSchema)]

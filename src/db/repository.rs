@@ -1,7 +1,6 @@
-use crate::apps::artifactory;
-use crate::db::{DefaultDB, repository};
+use crate::apps::artifactory::Artifactory;
+use crate::db::DefaultDB;
 use crate::providers::ProviderEnum;
-use crate::utils::artifactory::Artifactory;
 use rusqlite::params;
 
 pub async fn get_provider_and_id(

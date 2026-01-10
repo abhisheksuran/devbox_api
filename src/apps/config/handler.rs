@@ -3,13 +3,13 @@ use bollard::Docker;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
+use crate::apps::artifactory::Artifactory;
 use crate::db::{insert_artifactory, insert_builder, insert_provider, update_provider_db};
 use crate::providers::DevBoxProvider;
 use crate::providers::aws::AwsProvider;
 use crate::providers::azure::AzureProvider;
 use crate::providers::docker::DockerProvider;
 use crate::utils::AppState;
-use crate::utils::artifactory::Artifactory;
 use axum::extract::State;
 
 use std::env;

@@ -1,7 +1,7 @@
 pub mod docker;
+use crate::apps::artifactory::Artifactory;
 use crate::db::get_builder;
 use crate::models::DevBox;
-use crate::utils::artifactory::Artifactory;
 
 #[async_trait::async_trait]
 pub trait Builder {

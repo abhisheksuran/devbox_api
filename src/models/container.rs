@@ -1,6 +1,6 @@
+use crate::apps::artifactory::Artifactory;
 use crate::builders::get_builder_strategy;
 use crate::task_log;
-use crate::utils::artifactory::Artifactory;
 // use crate::utils::build_from_local;
 // use anyhow::Result;
 use serde::{Deserialize, Serialize};

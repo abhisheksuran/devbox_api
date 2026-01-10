@@ -1,10 +1,10 @@
+use crate::apps::artifactory::Artifactory;
 use crate::apps::config::update_provider;
 use crate::providers::aws::AwsProvider;
 use crate::providers::azure::AzureProvider;
 use crate::providers::docker::DockerProvider;
 use crate::providers::docker::DockerProviderMod;
 use crate::utils::AppState;
-use crate::utils::artifactory::Artifactory;
 use axum::Json;
 use axum::extract::State;
 use axum::response::IntoResponse;

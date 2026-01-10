@@ -1,4 +1,3 @@
-pub mod artifactory;
 mod features;
 mod global_state;
 pub mod metadata;

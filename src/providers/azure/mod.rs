@@ -8,10 +8,10 @@ use container::{
 };
 use std::sync::Arc;
 
+use crate::apps::artifactory::Artifactory;
 use crate::models::DevBox;
 use crate::providers::DevBoxProvider;
 use crate::task_log;
-use crate::utils::artifactory::Artifactory;
 use azure_core::credentials::AccessToken;
 use azure_core::credentials::TokenCredential;
 use azure_identity::AzureCliCredential;
