@@ -1,13 +1,13 @@
 use crate::models::{DevBox, DevcontainerFeature, FeatureNode};
 use crate::task_log;
-use bollard::Docker;
-use http_body_util::Full;
+// use bollard::Docker;
+// use http_body_util::Full;
 use parse_dockerfile::{Instruction, parse};
 use std::collections::HashMap;
-use std::io::Write;
+// use std::io::Write;
 use std::path::Path;
-use std::sync::Arc;
-use tokio_stream::StreamExt;
+// use std::sync::Arc;
+// use tokio_stream::StreamExt;
 
 pub async fn get_docker_file(
     devcontainer: &DevBox,
@@ -197,11 +197,12 @@ pub fn feature_to_dockerfile(
     devbox: &DevBox,
 ) -> Result<Vec<String>, Box<dyn std::error::Error>> {
     task_log!("Generating Dockerfile from features path: {}", base_path);
+    let user = &devbox.remote_user;
     let mut feature_order: Vec<FeatureNode> = Vec::new();
     let mut features_cmd_map: HashMap<String, Vec<String>> = HashMap::new();
     let mut docker_file_features: Vec<String> = Vec::new();
-    docker_file_features.push("RUN useradd -m -d /home/vscode vscode".to_string());
-    docker_file_features.push("RUN touch home/vscode/.zshrc".to_string());
+    docker_file_features.push(format!("RUN useradd -m -d /home/{user} {user}"));
+    docker_file_features.push(format!("RUN touch home/{user}/.zshrc"));
     docker_file_features.push("RUN mkdir /features".to_string());
 
     if let Some(features) = &devbox.features {
@@ -233,90 +234,90 @@ pub fn feature_to_dockerfile(
     Ok(docker_file_features)
 }
 
-pub async fn build_from_local(
-    docker: Arc<Docker>,
-    devcontainer: &DevBox,
-    path: &String,
-) -> Result<(), Box<dyn std::error::Error>> {
-    // let curr_path = ".".to_string();
-    // let base_path = path.unwrap_or(&curr_path);
-    let sorted_dev_features = feature_to_dockerfile(path, devcontainer).unwrap_or_default();
-    task_log!("Final Dockerfile Commands: {:?}", sorted_dev_features);
-    let (dockerfile, sourcefile, sourcedir) =
-        get_docker_file(devcontainer, Some(&sorted_dev_features), path.as_str()).await?;
+// pub async fn build_from_local(
+//     docker: Arc<Docker>,
+//     devcontainer: &DevBox,
+//     path: &String,
+// ) -> Result<(), Box<dyn std::error::Error>> {
+//     // let curr_path = ".".to_string();
+//     // let base_path = path.unwrap_or(&curr_path);
+//     let sorted_dev_features = feature_to_dockerfile(path, devcontainer).unwrap_or_default();
+//     task_log!("Final Dockerfile Commands: {:?}", sorted_dev_features);
+//     let (dockerfile, sourcefile, sourcedir) =
+//         get_docker_file(devcontainer, Some(&sorted_dev_features), path.as_str()).await?;
 
-    task_log!("{:?}", &dockerfile);
+//     task_log!("{:?}", &dockerfile);
 
-    let mut header = tar::Header::new_gnu();
-    header.set_path("Dockerfile").unwrap();
-    header.set_size(dockerfile.len() as u64);
-    header.set_mode(0o755);
-    header.set_cksum();
-    let mut tar = tar::Builder::new(Vec::new());
-    tar.append(&header, dockerfile.as_bytes()).unwrap();
+//     let mut header = tar::Header::new_gnu();
+//     header.set_path("Dockerfile").unwrap();
+//     header.set_size(dockerfile.len() as u64);
+//     header.set_mode(0o755);
+//     header.set_cksum();
+//     let mut tar = tar::Builder::new(Vec::new());
+//     tar.append(&header, dockerfile.as_bytes()).unwrap();
 
-    let feature_dir = format!("{}/features", path);
-    let feature_path = std::path::Path::new(&feature_dir);
-    tar.append_dir_all("features", feature_path)?;
+//     let feature_dir = format!("{}/features", path);
+//     let feature_path = std::path::Path::new(&feature_dir);
+//     tar.append_dir_all("features", feature_path)?;
 
-    // Add source files
-    if let Some(files) = sourcefile {
-        for file_path in files {
-            let file_path_obj = Path::new(&file_path);
-            if file_path_obj.is_file() {
-                tar.append_path_with_name(file_path_obj, file_path_obj.file_name().unwrap())?;
-            }
-        }
-    }
+//     // Add source files
+//     if let Some(files) = sourcefile {
+//         for file_path in files {
+//             let file_path_obj = Path::new(&file_path);
+//             if file_path_obj.is_file() {
+//                 tar.append_path_with_name(file_path_obj, file_path_obj.file_name().unwrap())?;
+//             }
+//         }
+//     }
 
-    // Add source directories
-    if let Some(dirs) = sourcedir {
-        for dir_path in dirs {
-            let dir_path_obj = Path::new(&dir_path);
-            if dir_path_obj.is_dir() {
-                tar.append_dir_all(dir_path_obj.file_name().unwrap(), dir_path_obj)?;
-            }
-        }
-    }
+//     // Add source directories
+//     if let Some(dirs) = sourcedir {
+//         for dir_path in dirs {
+//             let dir_path_obj = Path::new(&dir_path);
+//             if dir_path_obj.is_dir() {
+//                 tar.append_dir_all(dir_path_obj.file_name().unwrap(), dir_path_obj)?;
+//             }
+//         }
+//     }
 
-    let uncompressed = tar.into_inner().unwrap();
-    let mut c = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::default());
-    c.write_all(&uncompressed).unwrap();
-    let compressed = c.finish().unwrap();
+//     let uncompressed = tar.into_inner().unwrap();
+//     let mut c = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::default());
+//     c.write_all(&uncompressed).unwrap();
+//     let compressed = c.finish().unwrap();
 
-    let id = &devcontainer.name;
-    let build_image_options = bollard::query_parameters::BuildImageOptionsBuilder::default()
-        .t(id)
-        .dockerfile("Dockerfile")
-        .pull("true");
+//     let id = &devcontainer.name;
+//     let build_image_options = bollard::query_parameters::BuildImageOptionsBuilder::default()
+//         .t(id)
+//         .dockerfile("Dockerfile")
+//         .pull("true");
 
-    task_log!("Building image..");
-    let mut image_build_stream = docker.build_image(
-        build_image_options.build(),
-        None,
-        Some(http_body_util::Either::Left(Full::new(compressed.into()))),
-    );
+//     task_log!("Building image..");
+//     let mut image_build_stream = docker.build_image(
+//         build_image_options.build(),
+//         None,
+//         Some(http_body_util::Either::Left(Full::new(compressed.into()))),
+//     );
 
-    while let Some(msg) = image_build_stream.next().await {
-        match msg {
-            Ok(info) => {
-                if let Some(stream) = info.stream {
-                    task_log!("Stream {}", stream);
-                }
-                if let Some(status) = info.status {
-                    task_log!("Status: {}", status);
-                }
-                if let Some(aux) = info.aux {
-                    task_log!("Image ID: {:?}", aux.id);
-                }
-                if let Some(error) = info.error {
-                    task_log!("Build error: {}", error);
-                }
-            }
-            Err(e) => {
-                task_log!("Stream error: {:?}", e);
-            }
-        }
-    }
-    Ok(())
-}
+//     while let Some(msg) = image_build_stream.next().await {
+//         match msg {
+//             Ok(info) => {
+//                 if let Some(stream) = info.stream {
+//                     task_log!("Stream {}", stream);
+//                 }
+//                 if let Some(status) = info.status {
+//                     task_log!("Status: {}", status);
+//                 }
+//                 if let Some(aux) = info.aux {
+//                     task_log!("Image ID: {:?}", aux.id);
+//                 }
+//                 if let Some(error) = info.error {
+//                     task_log!("Build error: {}", error);
+//                 }
+//             }
+//             Err(e) => {
+//                 task_log!("Stream error: {:?}", e);
+//             }
+//         }
+//     }
+//     Ok(())
+// }
