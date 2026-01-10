@@ -54,7 +54,7 @@ pub async fn add_builder(Json(data): Json<BuilderMod>) -> impl IntoResponse {
     let success = (insert_builder(
         &data.name,
         data.remote,
-        &data.builder,
+        &data.builder.to_string(),
         &data.config.to_string(),
     )
     .await)
@@ -79,7 +79,7 @@ pub async fn add_builder(Json(data): Json<BuilderMod>) -> impl IntoResponse {
     )
 )]
 pub async fn remove_builder(Query(builder): Query<BuilderModQuery>) -> impl IntoResponse {
-    let success = delete_builder(&builder.builder.to_string()).await.is_ok();
+    let success = delete_builder(&builder.builder).await.is_ok();
     if success {
         (StatusCode::OK, "SUCCESS").into_response()
     } else {

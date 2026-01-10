@@ -2,7 +2,7 @@
 pub struct BuilderMod {
     pub name: String,
     pub remote: u16,
-    pub builder: String,
+    pub builder: crate::builders::BuilderEnum,
     pub config: serde_json::Value,
 }
 

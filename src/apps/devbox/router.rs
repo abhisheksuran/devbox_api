@@ -2,6 +2,7 @@ use crate::apps::devbox::{
     ActionEnum, ActionQuery, ContainerListResponse, ProviderQuery, action_devbox, create_devbox,
     validate_state,
 };
+use crate::builders::BuilderEnum;
 use crate::db::{get_container, get_provider_and_id, insert_task, list_containers};
 use crate::logs::{ASYNC_TASK_ID, TASK_LOGGERS};
 use crate::models::DevBox;
@@ -27,12 +28,11 @@ use uuid::Uuid;
 #[utoipa::path(
     post,
     path = "/devbox/create",
-    params(("provider" = crate::providers::ProviderEnum, Query, description = "Devbox provider"), ("path" = String, Query, description = "Path to .devbox directory like home/john/myapp/.devbox")),
-    request_body(
-        content = Option<DevBox>,
-        description = "Optional devbox body",
-    ),
-    // request_body = Option<DevBox>,
+    params(("provider" = crate::providers::ProviderEnum, Query, description = "Devbox provider"), ("path" = String, Query, description = "Path to .devbox directory like home/john/myapp/.devbox"), ("builder" = String, Query, description = "Builder to build image: local is available by default to use")),
+    // request_body(
+    //     content = Option<DevBox>,
+    //     description = "Optional devbox body",
+    // ),
     description = "Create new container via available providers docker/azure/aws. You container post body is optional, if not provided it will read body from the path provided",
     responses(
         (status = 200, description = "Task accepted", body = String),
@@ -119,8 +119,14 @@ pub async fn new_devbox(
                 }
             };
 
-            if let Err(e) =
-                create_devbox(provider, &builder, app_state, devcontainer, path_param).await
+            if let Err(e) = create_devbox(
+                provider,
+                &builder.to_string(),
+                app_state,
+                devcontainer,
+                path_param,
+            )
+            .await
             {
                 task_log!("Failed to create devbox: {}", e);
             }

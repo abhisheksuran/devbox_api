@@ -12,6 +12,9 @@ This is a Rust-based backend API service for DevBox built using the Axum web fra
 
 Devbox (written in Rust) is similar to devcontainer but devbox can be deployed on cloud as well.
 
+## Usage 
+- Initialize the App for local usage by sending GET request to `/config/edit`.
+
 ## API Endpoints
 
 - `/devbox/create`: Create new container (Currently swagger does not mention all it's features).
@@ -19,7 +22,7 @@ Devbox (written in Rust) is similar to devcontainer but devbox can be deployed o
 - `/devbox/logs/{id}`: Get detailed logs for a container.
 - `/devbox/{id}?action=start|stop|delete`: Start/Stop/Delete container.
 - `/artifactories/`: Add, Remove, Modify and List artifactories.
-- `/providers/`: Modify, List providers. 
+- `/providers/docker|aws|azure`: Modify, List providers. 
 - `/builders/`: Add, Remove, List Builders.
 - `/config/edit`: API routes for configuration management for anonymous user
 - `/config/provider/docker|azure|aws/edit`: Endpoint to configure specific provider.
