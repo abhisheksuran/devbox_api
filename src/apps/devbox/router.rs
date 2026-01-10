@@ -23,8 +23,6 @@ use tracing::error;
 
 use uuid::Uuid;
 
-// const LOG_DIR: &str = "/home/kk/log/devbox";
-
 // POST /devbox/create?provider=docker|azure|aws
 #[utoipa::path(
     post,
@@ -130,7 +128,7 @@ pub async fn new_devbox(
     });
 
     let _ = insert_task(&task_id, &provider.to_string(), "initiated", path).await;
-    (Json(json!({ "task_id": task_id }))).into_response()
+    (StatusCode::OK, Json(json!({ "task_id": task_id }))).into_response()
 }
 
 // WS /ws/docker/{id}
@@ -178,20 +176,22 @@ pub async fn action_on_devbox(
     let state = match &*guard {
         Some(state) => state.clone(),
         None => {
-            return Err((
+            return (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "AppState not initialized",
-            ));
+            )
+                .into_response();
         }
     };
     let action = action.action;
 
     match action_devbox(id, &state, action).await {
-        Ok(result) => Ok(Json(result)),
-        Err(_) => Err((
+        Ok(result) => (StatusCode::OK, Json(result)).into_response(),
+        Err(_) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             "Failed to perform action",
-        )),
+        )
+            .into_response(),
     }
 }
 
@@ -218,9 +218,9 @@ pub async fn list_all_devbox() -> impl IntoResponse {
                 })
                 .collect();
             // let res = serde_json::to_string(&result);
-            Ok(Json(mapped))
+            (StatusCode::OK, Json(mapped)).into_response()
         }
-        Err(_) => Err((StatusCode::INTERNAL_SERVER_ERROR, "Failed to list devbox")),
+        Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, "Failed to list devbox").into_response(),
     }
 }
 
@@ -267,18 +267,23 @@ pub async fn get_task_logs(
     let state = match &*guard {
         Some(state) => state.clone(),
         None => {
-            return Err((
+            return (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "AppState not initialized",
-            ));
+            )
+                .into_response();
         }
     };
 
     match crate::db::get_task_id(id).await {
-        Ok(task_id) => Ok(Json(
-            std::fs::read_to_string(format!("{}/{}.log", state.log_storage_path, task_id))
-                .unwrap_or("Failed to fetch logs".to_string()),
-        )),
-        Err(_) => Err((StatusCode::INTERNAL_SERVER_ERROR, "Failed to fetch logs")),
+        Ok(task_id) => (
+            StatusCode::OK,
+            Json(
+                std::fs::read_to_string(format!("{}/{}.log", state.log_storage_path, task_id))
+                    .unwrap_or("Failed to fetch logs".to_string()),
+            ),
+        )
+            .into_response(),
+        Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, "Failed to fetch logs").into_response(),
     }
 }

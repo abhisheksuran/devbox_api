@@ -86,15 +86,7 @@ pub async fn update_provider(
         let mut az_val = serde_json::to_value(azure).unwrap();
         let art: Artifactory =
             serde_json::from_value(az_val.get("artifactory").unwrap().clone()).unwrap();
-        let _ = insert_artifactory(
-            "azure",
-            &art.server,
-            &art.repository_name,
-            art.username.as_deref().unwrap(),
-            art.password.as_deref().unwrap(),
-            "",
-        )
-        .await;
+        let _ = insert_artifactory("azure", art).await;
         az_val = az_val
             .as_object_mut()
             .unwrap()
@@ -108,15 +100,7 @@ pub async fn update_provider(
         let mut aws_val = serde_json::to_value(aws).unwrap();
         let art: Artifactory =
             serde_json::from_value(aws_val.get("artifactory").unwrap().clone()).unwrap();
-        let _ = insert_artifactory(
-            "aws",
-            &art.server,
-            &art.repository_name,
-            art.username.as_deref().unwrap(),
-            art.password.as_deref().unwrap(),
-            "",
-        )
-        .await;
+        let _ = insert_artifactory("aws", art).await;
         let aws_val = aws_val
             .as_object_mut()
             .unwrap()
@@ -127,27 +111,10 @@ pub async fn update_provider(
             .unwrap();
     } else if let Some(docker) = provider.as_any().downcast_ref::<DockerProvider>() {
         docker_provider = Some(docker.clone());
-        let _ = insert_artifactory(
-            "docker",
-            &docker.artifactory.clone().unwrap().server,
-            &docker.artifactory.clone().unwrap().repository_name,
-            docker
-                .artifactory
-                .clone()
-                .unwrap()
-                .username
-                .as_deref()
-                .unwrap(),
-            docker
-                .artifactory
-                .clone()
-                .unwrap()
-                .password
-                .as_deref()
-                .unwrap(),
-            "",
-        )
-        .await;
+        if docker.artifactory.is_some() {
+            let _ = insert_artifactory("docker", docker.artifactory.clone().unwrap()).await;
+        }
+
         update_provider_db("docker", serde_json::to_string(&docker.remote).unwrap())
             .await
             .unwrap();

@@ -1,3 +1,4 @@
+pub mod model;
 mod router;
 
 pub use router::{add_builder, list_all_builders, remove_builder};

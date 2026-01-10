@@ -1,15 +1,8 @@
+use crate::apps::builder::model::BuilderMod;
 use crate::db::{delete_builder, insert_builder, list_builders};
 use crate::utils::TunnelConfig;
 use axum::http::StatusCode;
 use axum::{Json, extract::Query, response::IntoResponse};
-
-#[derive(Clone, serde::Deserialize, serde::Serialize)]
-pub struct BuilderMod {
-    name: String,
-    remote: u16,
-    builder: String,
-    config: serde_json::Value,
-}
 
 pub async fn add_builder(Json(data): Json<BuilderMod>) -> impl IntoResponse {
     let cfg = data.config.clone();

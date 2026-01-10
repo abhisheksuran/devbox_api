@@ -69,33 +69,31 @@ pub async fn list_artifactory()
 
 pub async fn insert_artifactory(
     provider: &str,
-    server: &str,
-    repository: &str,
-    user: &str,
-    password: &str,
-    config: &str,
+    config: Artifactory,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let conn = DefaultDB::get_db()?;
     conn.execute(
-        "INSERT INTO artifactories (provider, server, repository_name, username, password, config)
+        "INSERT INTO artifactories (provider, server, repository_name, username, password)
          VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-        params![provider, server, repository, user, password, config],
+        params![
+            provider,
+            config.server,
+            config.repository_name,
+            config.username,
+            config.password
+        ],
     )?;
     Ok(())
 }
 
 pub async fn update_artifactory(
     provider: &str,
-    server: &str,
-    repository: &str,
-    user: &str,
-    password: &str,
-    config: &str,
+    config: Artifactory,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let conn = DefaultDB::get_db()?;
     conn.execute(
-        "UPDATE artifactories SET  server = ?2, repository_name = ?3, username = ?4, password = ?5, config = ?6 WHERE provider = ?1",
-        rusqlite::params![provider, server, repository, user, password, config],
+        "UPDATE artifactories SET  server = ?2, repository_name = ?3, username = ?4, password = ?5 WHERE provider = ?1",
+        rusqlite::params![provider, config.server, config.repository_name, config.username, config.password],
     )?;
     Ok(())
 }

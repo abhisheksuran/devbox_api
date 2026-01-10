@@ -5,3 +5,9 @@ pub struct Artifactory {
     pub username: Option<String>,
     pub password: Option<String>,
 }
+
+#[derive(Clone, serde::Deserialize, serde::Serialize)]
+pub struct ArtifactoryMod {
+    pub provider: String,
+    pub config: Artifactory,
+}

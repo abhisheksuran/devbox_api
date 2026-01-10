@@ -1,5 +1,6 @@
+use crate::apps::provider::model::{AwsMod, AzureMod, ProviderMod};
 use crate::db::{delete_provider, insert_provider, list_providers, update_provider_db};
-use crate::providers::{ProviderEnum, ProviderModQuery};
+use crate::providers::ProviderModQuery;
 use crate::utils::AppState;
 use crate::utils::update_appstate;
 use axum::http::StatusCode;
@@ -11,29 +12,6 @@ use axum::{
 
 use std::sync::Arc;
 use tokio::sync::RwLock;
-
-#[derive(Clone, serde::Deserialize, serde::Serialize)]
-pub struct ProviderMod {
-    provider: ProviderEnum,
-    config: serde_json::Value,
-}
-
-#[derive(Clone, serde::Deserialize, serde::Serialize)]
-pub struct AzureMod {
-    tanent: String,
-    subscription: String,
-    token: String,
-    location: String,
-    resource_group: String,
-    address_type: Option<String>,
-}
-
-#[derive(Clone, serde::Deserialize, serde::Serialize)]
-pub struct AwsMod {
-    access_key: String,
-    secret_key: String,
-    region: String,
-}
 
 pub async fn add_provider(
     State(state): State<Arc<RwLock<Option<AppState>>>>,
