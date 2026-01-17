@@ -50,7 +50,9 @@ pub async fn get_builder_strategy(
     name: &str,
     artifactory: Option<Artifactory>,
 ) -> Result<Box<dyn Builder + Send>, Box<dyn std::error::Error>> {
-    let builder_data = get_builder(name).await?;
+    let builder_data = get_builder(name)
+        .await
+        .unwrap_or(serde_json::from_str(r#"{"builder": "not_found"}"#)?);
     let builder_app = builder_data
         .get("builder")
         .and_then(serde_json::Value::as_str)
